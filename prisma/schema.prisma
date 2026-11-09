@@ -1,0 +1,365 @@
+// JCI Phnom Penh — Prisma schema
+//
+// Local dev runs on SQLite (zero setup, see DATABASE_URL in .env). SQLite's
+// Prisma connector doesn't support native enums, Json, or array columns, so
+// those are modeled as plain `String` here (enums as string unions enforced
+// in app code — see src/lib/enums.ts; Json/arrays as JSON-encoded strings
+// parsed via src/lib/json-field.ts). Swap `provider` to "postgresql" and
+// DATABASE_URL to Supabase for production, then promote those fields back
+// to native `enum`/`Json`/`String[]` — see README "Switching to
+// Postgres/Supabase".
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// RBAC — Role is "SUPER_ADMIN" | "BOARD_ADMIN" | "EVENT_ORGANIZER" (src/lib/enums.ts)
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(uuid()) // = Supabase auth.users.id in production
+  email        String   @unique
+  name         String
+  passwordHash String? // local email+password auth for dev; unused once Supabase Auth is wired in
+  role         String   @default("EVENT_ORGANIZER")
+  avatarUrl    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  organizedEvents  Event[]      @relation("EventOrganizer")
+  verifiedPayments Payment[]    @relation("PaymentVerifiedBy")
+  auditLogs        AuditLog[]
+  boardProfile     BoardMember?
+
+  @@map("users")
+}
+
+// ---------------------------------------------------------------------------
+// Events, ticketing, registration, payment
+// ---------------------------------------------------------------------------
+
+model Event {
+  id               String   @id @default(uuid())
+  slug             String   @unique
+  title            String // JSON string: { "en": "...", "km": "..." }
+  description      String // JSON string: { "en": "...", "km": "..." }
+  location         String
+  mapUrl           String?
+  bannerUrl        String?
+  startAt          DateTime
+  endAt            DateTime
+  telegramGroupUrl String? // revealed to registrants only after payment is submitted
+  speakers         String   @default("[]") // JSON string[] of { name, title } — Postgres: switch to native `Json`
+  agenda           String   @default("[]") // JSON string[] of { time, title } — Postgres: switch to native `Json`
+  published        Boolean  @default(false)
+
+  organizerId String
+  organizer   User   @relation("EventOrganizer", fields: [organizerId], references: [id])
+
+  ticketTiers   TicketTier[]
+  registrations Registration[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([startAt])
+  @@map("events")
+}
+
+model TicketTier {
+  id        String @id @default(uuid())
+  eventId   String
+  event     Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name       String // JSON string: { "en": "General", "km": "..." }
+  priceUsd   Float // Postgres: switch to `Decimal @db.Decimal(10, 2)` for exact currency math
+  capacity   Int
+  saleEndsAt DateTime? // e.g. Early Bird cutoff — tier stops being selectable after this
+  sortOrder  Int       @default(0)
+
+  registrations Registration[]
+
+  @@map("ticket_tiers")
+}
+
+// Registration.status is "PENDING_PAYMENT" | "PAYMENT_SUBMITTED" | "CONFIRMED" | "CANCELLED"
+model Registration {
+  id           String     @id @default(uuid())
+  eventId      String
+  event        Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  ticketTierId String
+  ticketTier   TicketTier @relation(fields: [ticketTierId], references: [id])
+
+  fullName String
+  email    String
+  phone    String
+
+  isJciMember Boolean @default(false)
+  jciChapter  String? // only set when isJciMember is true
+
+  status      String    @default("PENDING_PAYMENT")
+  checkedInAt DateTime?
+
+  payment Payment?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([eventId, email]) // one registration per email per event
+  @@index([eventId, status])
+  @@map("registrations")
+}
+
+// Payment.status is "PENDING" | "SUBMITTED" | "VERIFIED" | "REJECTED"
+model Payment {
+  id             String       @id @default(uuid())
+  registrationId String       @unique
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  amountUsd Float // Postgres: switch to `Decimal @db.Decimal(10, 2)` for exact currency math
+  method    String  @default("ABA_KHQR")
+  qrPayload String // raw EMVCo KHQR string rendered to the user
+  qrMd5     String? // ABA deeplink/check-transaction reference
+  status    String  @default("PENDING")
+
+  verifiedById String?
+  verifiedBy   User?     @relation("PaymentVerifiedBy", fields: [verifiedById], references: [id])
+  verifiedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("payments")
+}
+
+// ---------------------------------------------------------------------------
+// CMS: news, projects, board roster, hero impact stats
+// ---------------------------------------------------------------------------
+
+model NewsPost {
+  id           String    @id @default(uuid())
+  slug         String    @unique
+  title        String // JSON string: { "en": "...", "km": "..." }
+  body         String // JSON string, Markdown per locale: { "en": "...", "km": "..." }
+  coverUrl     String?
+  coverCaption String?
+  publishedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  photos NewsPhoto[]
+
+  @@map("news_posts")
+}
+
+model NewsPhoto {
+  id         String   @id @default(uuid())
+  newsPostId String
+  newsPost   NewsPost @relation(fields: [newsPostId], references: [id], onDelete: Cascade)
+  url        String
+  caption    String?
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([newsPostId])
+  @@map("news_photos")
+}
+
+// Project.pillar is one of the four JCI pillars (src/lib/enums.ts):
+// "BUSINESS_ENTREPRENEURSHIP" | "INTERNATIONAL_COOPERATION" | "INDIVIDUAL_DEVELOPMENT" | "COMMUNITY_IMPACT"
+model Project {
+  id              String   @id @default(uuid())
+  slug            String   @unique
+  title           String // JSON string: { "en": "...", "km": "..." }
+  summary         String // JSON string: { "en": "...", "km": "..." }
+  impactReportUrl String?
+  partnerLogos    String   @default("[]") // JSON string[] — Postgres: switch to native `String[]`
+  pillar          String   @default("COMMUNITY_IMPACT")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  photos ProjectPhoto[]
+
+  @@map("projects")
+}
+
+// Most JCI projects run annually, so photos are organized by year rather
+// than one flat gallery — the public project page groups them into a
+// section per year.
+model ProjectPhoto {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  year      Int
+  url       String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([projectId, year])
+  @@map("project_photos")
+}
+
+// General membership directory — distinct from BoardMember (the 10-seat
+// executive roster shown on /about). Every active member gets a public
+// profile at /members/[slug] with their business info and join year.
+model Member {
+  id            String   @id @default(uuid())
+  slug          String   @unique
+  name          String
+  photoUrl      String?
+  businessName  String?
+  jobTitle      String? // JSON string: { "en": "Managing Director", "km": "..." }
+  industry      String?
+  bio           String? // JSON string: { "en": "...", "km": "..." }
+  jciExperience String? // JSON string: { "en": "...", "km": "..." } — JCI roles/history, optional
+  email         String?
+  phone         String?
+  socialUrl     String?
+  joinYear      Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([joinYear])
+  @@map("members")
+}
+
+model BoardMember {
+  id        String  @id @default(uuid())
+  userId    String? @unique
+  user      User?   @relation(fields: [userId], references: [id])
+  name      String
+  title     String // JSON string: { "en": "Local President", "km": "..." }
+  photoUrl  String?
+  committee String? // null = Executive Board
+  sortOrder Int     @default(0)
+
+  @@map("board_members")
+}
+
+// Slide.category is "NEWS" | "EVENT" | "SPONSOR" | "MEMBER" (src/lib/enums.ts)
+model Slide {
+  id          String  @id @default(uuid())
+  title       String // JSON string: { "en": "...", "km": "..." }
+  description String? // JSON string: { "en": "...", "km": "..." }
+  imageUrl    String
+  linkUrl     String? // internal path (e.g. /events/slug) or external URL
+  category    String  @default("NEWS")
+  isActive    Boolean @default(true)
+  sortOrder   Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("slides")
+}
+
+model ImpactStat {
+  id        String   @id @default(uuid())
+  key       String   @unique // "members" | "projects" | "events" | "beneficiaries"
+  value     Int
+  updatedAt DateTime @updatedAt
+
+  @@map("impact_stats")
+}
+
+// ---------------------------------------------------------------------------
+// Membership + sponsorship intake
+// ---------------------------------------------------------------------------
+
+// MembershipApplication.status is "NEW" | "CONTACTED" | "APPROVED" | "REJECTED"
+// membershipStatus is "NEW_MEMBER" | "FORMER_MEMBER"
+// title is "MR" | "MS" | "MRS" | "DR" | "OTHER"
+// gender is "MALE" | "FEMALE" | "OTHER"
+// occupation is "BUSINESS_OWNER" | "EMPLOYEE" | "STUDENT" | "OTHER"
+// referralSource is "FRIENDS_FAMILY" | "COLLEAGUE" | "SOCIAL_MEDIA" | "OTHER"
+// supportArea is "SHARE_EXPERTISE" | "PROJECT_ORGANIZER" | "PROMOTE_SPONSORSHIP" | "OTHER"
+// status (admin review workflow) is "NEW" | "CONTACTED" | "APPROVED" | "REJECTED"
+model MembershipApplication {
+  id               String   @id @default(uuid())
+  membershipStatus String
+  formerMemberYear String?
+  fullNameKhmer    String
+  fullNameEnglish  String
+  title            String
+  nationality      String
+  gender           String
+  occupation       String
+  schoolName       String?
+  companyName      String?
+  companyIndustry  String?
+  department       String?
+  dateOfBirth      DateTime
+  phone            String
+  email            String
+  referralSource   String
+  supportArea      String
+  expectations     String?
+  agreedToTerms    Boolean  @default(false)
+  status           String   @default("NEW")
+  createdAt        DateTime @default(now())
+
+  @@map("membership_applications")
+}
+
+// SponsorInquiry.status is "NEW" | "CONTACTED" | "APPROVED" | "REJECTED"
+model SponsorInquiry {
+  id           String   @id @default(uuid())
+  orgName      String
+  contactEmail String
+  proposal     String
+  status       String   @default("NEW")
+  createdAt    DateTime @default(now())
+
+  @@map("sponsor_inquiries")
+}
+
+// ContactInquiry.status is "NEW" | "CONTACTED" | "APPROVED" | "REJECTED"
+model ContactInquiry {
+  id        String   @id @default(uuid())
+  fullName  String
+  email     String
+  message   String
+  status    String   @default("NEW")
+  createdAt DateTime @default(now())
+
+  @@map("contact_inquiries")
+}
+
+// ---------------------------------------------------------------------------
+// Site-wide settings (contact info, social links) — editable from
+// /admin/settings instead of being hardcoded in page source.
+// ---------------------------------------------------------------------------
+
+model SiteSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("site_settings")
+}
+
+// ---------------------------------------------------------------------------
+// Auditability
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id])
+  action     String // e.g. "registration.payment.verify", "news_post.update"
+  entityType String
+  entityId   String?
+  metadata   String? // JSON string
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
