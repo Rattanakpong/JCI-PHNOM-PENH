@@ -21,17 +21,6 @@ export async function updateMembershipStatus(id: string, status: string) {
   revalidatePath("/admin/inquiries");
 }
 
-export async function updateSponsorStatus(id: string, status: string) {
-  const actor = await requireInquiryManager();
-  await prisma.$transaction([
-    prisma.sponsorInquiry.update({ where: { id }, data: { status } }),
-    prisma.auditLog.create({
-      data: { actorId: actor.id, action: "sponsor_inquiry.status", entityType: "SponsorInquiry", entityId: id, metadata: JSON.stringify({ status }) },
-    }),
-  ]);
-  revalidatePath("/admin/inquiries");
-}
-
 export async function updateContactStatus(id: string, status: string) {
   const actor = await requireInquiryManager();
   await prisma.$transaction([

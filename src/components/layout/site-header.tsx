@@ -1,3 +1,5 @@
+import { existsSync } from "fs";
+import path from "path";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
@@ -7,7 +9,19 @@ import { NavDropdown } from "@/components/layout/nav-dropdown";
 import { Button } from "@/components/ui/button";
 
 const navLinkClassName =
-  "border-b-2 border-transparent py-6 text-sm font-medium text-brand-navy/80 transition-colors hover:border-brand-blue hover:text-brand-blue";
+  "whitespace-nowrap border-b-2 border-transparent py-6 text-sm font-medium xl:text-[15px] text-brand-navy/80 transition-colors hover:border-brand-blue hover:text-brand-blue";
+
+// Drop a JCI Cambodia logo at public/brand/jci-cambodia-logo.<ext> and the
+// About dropdown picks it up on the next request; until then it shows the
+// globe icon.
+function findBrandLogo(name: string): string | undefined {
+  for (const ext of ["png", "svg", "jpg", "jpeg", "webp"]) {
+    if (existsSync(path.join(process.cwd(), "public", "brand", `${name}.${ext}`))) {
+      return `/brand/${name}.${ext}`;
+    }
+  }
+  return undefined;
+}
 
 export function SiteHeader() {
   const t = useTranslations("nav");
@@ -18,12 +32,14 @@ export function SiteHeader() {
       label: t("jciCambodia"),
       description: t("jciCambodiaDesc"),
       icon: "globe" as const,
+      logo: findBrandLogo("jci-cambodia-logo"),
     },
     {
       href: "/about",
       label: t("jciPhnomPenh"),
       description: t("jciPhnomPenhDesc"),
       icon: "landmark" as const,
+      logo: "/brand/logo-main.png",
     },
   ];
 
@@ -40,7 +56,7 @@ export function SiteHeader() {
   ];
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-surface/90 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-white/40 bg-white/55 shadow-[0_8px_32px_-12px_rgb(11_19_43/0.18)] backdrop-blur-xl backdrop-saturate-150">
       <div className="section relative flex h-16 items-center justify-between md:h-20">
         <Link href="/" className="flex items-center">
           <Image
@@ -53,7 +69,7 @@ export function SiteHeader() {
           />
         </Link>
 
-        <nav className="hidden items-center gap-7 md:flex">
+        <nav className="hidden items-center gap-5 lg:flex xl:gap-10">
           <Link href="/" className={navLinkClassName}>
             {t("home")}
           </Link>
@@ -75,7 +91,7 @@ export function SiteHeader() {
           </Link>
         </nav>
 
-        <div className="hidden items-center gap-4 md:flex">
+        <div className="hidden items-center gap-4 lg:flex">
           <LanguageSwitcher />
           <div className="h-6 w-px bg-border" />
           <Button asChild size="sm">

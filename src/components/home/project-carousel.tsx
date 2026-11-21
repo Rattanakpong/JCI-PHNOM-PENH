@@ -50,7 +50,7 @@ export function ProjectCarousel({
     <div className="relative">
       <div
         ref={scrollerRef}
-        className="section flex snap-x snap-mandatory gap-6 overflow-x-auto scroll-smooth pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="section flex snap-x snap-mandatory gap-6 overflow-x-auto max-sm:scroll-pl-6 max-sm:px-6 scroll-smooth pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {projects.map((project) => (
           <Card
@@ -87,7 +87,7 @@ export function ProjectCarousel({
       </div>
 
       {projects.length > 1 && (
-        <div className="section mt-4 flex justify-end gap-2">
+        <div className="section mt-4 flex justify-end gap-2 max-sm:px-6">
           <button
             type="button"
             aria-label="Scroll left"

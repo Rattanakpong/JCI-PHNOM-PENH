@@ -1,12 +1,40 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { toJsonField, parseStringArray } from "@/lib/json-field";
 import { saveUploadedFile } from "@/lib/storage";
 import { ProjectPillar } from "@/lib/enums";
 import { requireContentEditor, requireEventOrganizer, logContentChange } from "@/lib/actions/admin-guards";
-import { parseSpeakers, parseAgenda } from "@/lib/actions/event-helpers";
+import { parseSpeakers, parseAgenda, readEventExtras } from "@/lib/actions/event-helpers";
+import { serializeEventDescription } from "@/lib/event-extras";
+import { parseDateInput } from "@/lib/project-dates";
+import { ORG_STRUCTURE_IMAGE_KEY } from "@/lib/site-settings";
+import {
+  parseNewsBody,
+  sanitizeTemplate,
+  serializeTemplateBody,
+  type NewsTemplate,
+} from "@/lib/news-article";
+
+// Shared by createProject/updateProject: optional schedule for the Upcoming calendar.
+function readProjectSchedule(formData: FormData) {
+  const startDate = parseDateInput(formData.get("startDate"));
+  const endDate = parseDateInput(formData.get("endDate"));
+  const location = String(formData.get("location") ?? "").trim() || null;
+  if (endDate && !startDate) throw new Error("Set a start date before setting an end date");
+  if (startDate && endDate && endDate < startDate) throw new Error("End date can't be before the start date");
+  return { startDate, endDate, location };
+}
+
+function revalidateProjectPages(slug?: string) {
+  for (const locale of ["en", "km"]) {
+    revalidatePath(`/${locale}/projects`);
+    revalidatePath(`/${locale}/events`);
+    if (slug) revalidatePath(`/${locale}/projects/${slug}`);
+  }
+}
 
 export async function updateImpactStats(formData: FormData) {
   const actor = await requireContentEditor();
@@ -27,13 +55,53 @@ export async function updateImpactStats(formData: FormData) {
   revalidatePath("/en");
   revalidatePath("/km");
   revalidatePath("/admin/content");
+  redirect("/admin/content/homepage?saved=1");
+}
+
+// Reads the fixed news-template fields (see NewsTemplate). Highlights are
+// entered one per line.
+function readNewsTemplate(formData: FormData): NewsTemplate {
+  const field = (name: string) => String(formData.get(name) ?? "").trim();
+  const template = sanitizeTemplate({
+    eventDate: field("eventDate"),
+    location: field("location"),
+    summary: field("summary"),
+    story: field("story"),
+    quote: { text: field("quoteText"), name: field("quoteName"), role: field("quoteRole") },
+    highlights: field("highlights").split("\n"),
+    closing: field("closing"),
+  });
+  if (!template) throw new Error("The opening summary and main story are required");
+  return template;
+}
+
+// Appends uploaded gallery photos to a post. Captions are one per line, in
+// the same order the files were selected.
+async function saveNewsGallery(newsPostId: string, formData: FormData, fileField = "photos") {
+  const photoFiles = formData.getAll(fileField).filter((f): f is File => f instanceof File && f.size > 0);
+  if (photoFiles.length === 0) return 0;
+
+  const captions = String(formData.get("captions") ?? "").split("\n").map((c) => c.trim());
+  const existingCount = await prisma.newsPhoto.count({ where: { newsPostId } });
+  const urls = await Promise.all(photoFiles.map((f) => saveUploadedFile(f, "news")));
+
+  await prisma.newsPhoto.createMany({
+    data: urls.map((url, i) => ({
+      newsPostId,
+      url,
+      caption: captions[i] || null,
+      sortOrder: existingCount + i,
+    })),
+  });
+  return photoFiles.length;
 }
 
 export async function createNewsPost(formData: FormData) {
   const actor = await requireContentEditor();
   const titleEn = String(formData.get("titleEn") ?? "").trim();
-  const bodyEn = String(formData.get("bodyEn") ?? "").trim();
-  if (!titleEn || !bodyEn) throw new Error("Title and body are required");
+  if (!titleEn) throw new Error("Title is required");
+
+  const template = readNewsTemplate(formData);
 
   const slug = `${titleEn.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 60)}-${Date.now()}`;
 
@@ -46,17 +114,19 @@ export async function createNewsPost(formData: FormData) {
     data: {
       slug,
       title: toJsonField({ en: titleEn, km: titleEn }),
-      body: toJsonField({ en: bodyEn, km: bodyEn }),
+      body: serializeTemplateBody(template),
       coverUrl,
       coverCaption,
       publishedAt: formData.get("published") ? new Date() : null,
     },
   });
+  await saveNewsGallery(post.id, formData);
 
   await logContentChange(actor.id, "news_post.create", "NewsPost", post.id);
   revalidatePath("/en/news");
   revalidatePath("/km/news");
   revalidatePath("/admin/content");
+  redirect("/admin/content/news?saved=1");
 }
 
 // Gallery photos for an article — supports any number of uploads (10+ is
@@ -71,22 +141,7 @@ export async function addNewsPhotos(formData: FormData) {
   const post = await prisma.newsPost.findUnique({ where: { id: newsPostId } });
   if (!post) throw new Error("News post not found");
 
-  const photoFiles = formData.getAll("photos").filter((f): f is File => f instanceof File && f.size > 0);
-  if (photoFiles.length === 0) throw new Error("At least one photo is required");
-
-  const captions = String(formData.get("captions") ?? "").split("\n").map((c) => c.trim());
-
-  const existingCount = await prisma.newsPhoto.count({ where: { newsPostId } });
-  const urls = await Promise.all(photoFiles.map((f) => saveUploadedFile(f, "news")));
-
-  await prisma.newsPhoto.createMany({
-    data: urls.map((url, i) => ({
-      newsPostId,
-      url,
-      caption: captions[i] || null,
-      sortOrder: existingCount + i,
-    })),
-  });
+  if ((await saveNewsGallery(newsPostId, formData)) === 0) throw new Error("At least one photo is required");
 
   await logContentChange(actor.id, "news_post.add_photos", "NewsPost", newsPostId);
   revalidatePath("/en/news");
@@ -94,6 +149,7 @@ export async function addNewsPhotos(formData: FormData) {
   revalidatePath(`/en/news/${post.slug}`);
   revalidatePath(`/km/news/${post.slug}`);
   revalidatePath("/admin/content");
+  redirect("/admin/content/news?saved=1");
 }
 
 export async function createProject(formData: FormData) {
@@ -111,10 +167,16 @@ export async function createProject(formData: FormData) {
   const impactReportUrl =
     reportFile instanceof File && reportFile.size > 0 ? await saveUploadedFile(reportFile, "reports") : null;
 
+  const coverFile = formData.get("cover");
+  const coverUrl =
+    coverFile instanceof File && coverFile.size > 0 ? await saveUploadedFile(coverFile, "projects") : null;
+
   const pillarInput = String(formData.get("pillar") ?? "");
   const pillar = (Object.values(ProjectPillar) as string[]).includes(pillarInput)
     ? pillarInput
     : ProjectPillar.COMMUNITY_IMPACT;
+
+  const schedule = readProjectSchedule(formData);
 
   const project = await prisma.project.create({
     data: {
@@ -124,13 +186,15 @@ export async function createProject(formData: FormData) {
       pillar,
       partnerLogos: toJsonField(partnerLogos),
       impactReportUrl,
+      coverUrl,
+      ...schedule,
     },
   });
 
   await logContentChange(actor.id, "project.create", "Project", project.id);
-  revalidatePath("/en/projects");
-  revalidatePath("/km/projects");
+  revalidateProjectPages();
   revalidatePath("/admin/content");
+  redirect("/admin/content/projects?saved=1");
 }
 
 export async function addProjectPhotos(formData: FormData) {
@@ -163,6 +227,7 @@ export async function addProjectPhotos(formData: FormData) {
   revalidatePath(`/en/projects/${project.slug}`);
   revalidatePath(`/km/projects/${project.slug}`);
   revalidatePath("/admin/content");
+  redirect("/admin/content/projects?saved=1");
 }
 
 export async function createEvent(formData: FormData) {
@@ -181,6 +246,7 @@ export async function createEvent(formData: FormData) {
   const telegramGroupUrl = String(formData.get("telegramGroupUrl") ?? "").trim() || null;
   const speakers = parseSpeakers(String(formData.get("speakers") ?? ""));
   const agenda = parseAgenda(String(formData.get("agenda") ?? ""));
+  const extras = await readEventExtras(formData);
 
   const banner = formData.get("banner");
   const bannerUrl = banner instanceof File && banner.size > 0 ? await saveUploadedFile(banner, "events") : null;
@@ -201,7 +267,7 @@ export async function createEvent(formData: FormData) {
     data: {
       slug,
       title: toJsonField({ en: titleEn, km: titleEn }),
-      description: toJsonField({ en: descriptionEn, km: descriptionEn }),
+      description: serializeEventDescription(descriptionEn, extras),
       location,
       mapUrl,
       bannerUrl,
@@ -220,6 +286,7 @@ export async function createEvent(formData: FormData) {
   revalidatePath("/en/events");
   revalidatePath("/km/events");
   revalidatePath("/admin/events");
+  redirect("/admin/events?saved=1");
 }
 
 export async function createSlide(formData: FormData) {
@@ -252,6 +319,7 @@ export async function createSlide(formData: FormData) {
   revalidatePath("/en");
   revalidatePath("/km");
   revalidatePath("/admin/content");
+  redirect("/admin/content/homepage?saved=1");
 }
 
 export async function toggleSlideActive(formData: FormData) {
@@ -268,30 +336,35 @@ export async function toggleSlideActive(formData: FormData) {
   revalidatePath("/admin/content");
 }
 
-export async function createBoardMember(formData: FormData) {
+export async function updateOrgStructureImage(formData: FormData) {
   const actor = await requireContentEditor();
-  const name = String(formData.get("name") ?? "").trim();
-  const titleEn = String(formData.get("titleEn") ?? "").trim();
-  if (!name || !titleEn) throw new Error("Name and title are required");
+  const image = formData.get("image");
+  if (!(image instanceof File) || image.size === 0) throw new Error("Choose an image to upload");
+  if (!image.type.startsWith("image/")) throw new Error("The organization structure must be an image");
 
-  const committee = String(formData.get("committee") ?? "").trim();
-  const photo = formData.get("photo");
-  const photoUrl = photo instanceof File && photo.size > 0 ? await saveUploadedFile(photo, "board") : null;
-
-  const member = await prisma.boardMember.create({
-    data: {
-      name,
-      title: toJsonField({ en: titleEn, km: titleEn }),
-      committee: committee || null,
-      photoUrl,
-      sortOrder: Number(formData.get("sortOrder") ?? 0) || 0,
-    },
+  const value = await saveUploadedFile(image, "org-structure");
+  await prisma.siteSetting.upsert({
+    where: { key: ORG_STRUCTURE_IMAGE_KEY },
+    update: { value },
+    create: { key: ORG_STRUCTURE_IMAGE_KEY, value },
   });
 
-  await logContentChange(actor.id, "board_member.create", "BoardMember", member.id);
+  await logContentChange(actor.id, "org_structure.update", "SiteSetting", ORG_STRUCTURE_IMAGE_KEY);
   revalidatePath("/en/about");
   revalidatePath("/km/about");
-  revalidatePath("/admin/content");
+  revalidatePath("/admin/content/people");
+  redirect("/admin/content/people?saved=1");
+}
+
+export async function removeOrgStructureImage() {
+  const actor = await requireContentEditor();
+
+  await prisma.siteSetting.deleteMany({ where: { key: ORG_STRUCTURE_IMAGE_KEY } });
+
+  await logContentChange(actor.id, "org_structure.delete", "SiteSetting", ORG_STRUCTURE_IMAGE_KEY);
+  revalidatePath("/en/about");
+  revalidatePath("/km/about");
+  revalidatePath("/admin/content/people");
 }
 
 export async function createMember(formData: FormData) {
@@ -335,6 +408,7 @@ export async function createMember(formData: FormData) {
   revalidatePath("/en/members");
   revalidatePath("/km/members");
   revalidatePath("/admin/content");
+  redirect("/admin/content/people?saved=1");
 }
 
 // ---------------------------------------------------------------------------
@@ -378,6 +452,7 @@ export async function updateSlide(formData: FormData) {
   revalidatePath("/en");
   revalidatePath("/km");
   revalidatePath("/admin/content/homepage");
+  redirect("/admin/content/homepage?saved=1");
 }
 
 export async function deleteSlide(formData: FormData) {
@@ -399,8 +474,12 @@ export async function updateNewsPost(formData: FormData) {
   if (!post) throw new Error("News post not found");
 
   const titleEn = String(formData.get("titleEn") ?? "").trim();
-  const bodyEn = String(formData.get("bodyEn") ?? "").trim();
-  if (!titleEn || !bodyEn) throw new Error("Title and body are required");
+  if (!titleEn) throw new Error("Title is required");
+
+  // Every post is edited through the template fields, so saving an older
+  // classic or press post switches it to the template layout.
+  const previous = parseNewsBody(post.body);
+  const body = serializeTemplateBody(readNewsTemplate(formData));
 
   const coverImage = formData.get("coverImage");
   const coverUrl =
@@ -414,12 +493,27 @@ export async function updateNewsPost(formData: FormData) {
     where: { id },
     data: {
       title: toJsonField({ en: titleEn, km: titleEn }),
-      body: toJsonField({ en: bodyEn, km: bodyEn }),
+      body,
       coverUrl,
       coverCaption,
       publishedAt,
     },
   });
+  // The template has no inline images, so a press post's image blocks move to
+  // the end of its gallery (before any photos uploaded in this save).
+  const blockImages = previous.blocks.flatMap((block) => (block.type === "image" ? [block] : []));
+  if (previous.layout === "press" && blockImages.length > 0) {
+    const existingCount = await prisma.newsPhoto.count({ where: { newsPostId: id } });
+    await prisma.newsPhoto.createMany({
+      data: blockImages.map((block, i) => ({
+        newsPostId: id,
+        url: block.url,
+        caption: block.caption || null,
+        sortOrder: existingCount + i,
+      })),
+    });
+  }
+  await saveNewsGallery(id, formData);
 
   await logContentChange(actor.id, "news_post.update", "NewsPost", id);
   revalidatePath("/en/news");
@@ -427,6 +521,7 @@ export async function updateNewsPost(formData: FormData) {
   revalidatePath(`/en/news/${post.slug}`);
   revalidatePath(`/km/news/${post.slug}`);
   revalidatePath("/admin/content/news");
+  redirect("/admin/content/news?saved=1");
 }
 
 export async function toggleNewsPostPublished(formData: FormData) {
@@ -490,18 +585,36 @@ export async function updateProject(formData: FormData) {
 
   const logoFiles = formData.getAll("partnerLogos").filter((f): f is File => f instanceof File && f.size > 0);
   const newLogos = await Promise.all(logoFiles.map((f) => saveUploadedFile(f, "partners")));
-  const partnerLogos = [...parseStringArray(project.partnerLogos), ...newLogos];
+  const removedLogos = new Set(formData.getAll("removeLogos").map(String));
+  const partnerLogos = [
+    ...parseStringArray(project.partnerLogos).filter((url) => !removedLogos.has(url)),
+    ...newLogos,
+  ];
 
+  // A newly uploaded report wins over the "remove report" checkbox.
   const reportFile = formData.get("impactReport");
   const impactReportUrl =
     reportFile instanceof File && reportFile.size > 0
       ? await saveUploadedFile(reportFile, "reports")
-      : project.impactReportUrl;
+      : formData.get("removeReport") === "on"
+        ? null
+        : project.impactReportUrl;
+
+  // Same rule for the cover: a new upload wins over "remove cover".
+  const coverFile = formData.get("cover");
+  const coverUrl =
+    coverFile instanceof File && coverFile.size > 0
+      ? await saveUploadedFile(coverFile, "projects")
+      : formData.get("removeCover") === "on"
+        ? null
+        : project.coverUrl;
 
   const pillarInput = String(formData.get("pillar") ?? "");
   const pillar = (Object.values(ProjectPillar) as string[]).includes(pillarInput)
     ? pillarInput
     : project.pillar;
+
+  const schedule = readProjectSchedule(formData);
 
   await prisma.project.update({
     where: { id },
@@ -511,15 +624,15 @@ export async function updateProject(formData: FormData) {
       pillar,
       partnerLogos: toJsonField(partnerLogos),
       impactReportUrl,
+      coverUrl,
+      ...schedule,
     },
   });
 
   await logContentChange(actor.id, "project.update", "Project", id);
-  revalidatePath("/en/projects");
-  revalidatePath("/km/projects");
-  revalidatePath(`/en/projects/${project.slug}`);
-  revalidatePath(`/km/projects/${project.slug}`);
+  revalidateProjectPages(project.slug);
   revalidatePath("/admin/content/projects");
+  redirect("/admin/content/projects?saved=1");
 }
 
 export async function deleteProject(formData: FormData) {
@@ -529,8 +642,7 @@ export async function deleteProject(formData: FormData) {
   await prisma.project.delete({ where: { id } }); // photos cascade
 
   await logContentChange(actor.id, "project.delete", "Project", id);
-  revalidatePath("/en/projects");
-  revalidatePath("/km/projects");
+  revalidateProjectPages();
   revalidatePath("/admin/content/projects");
 }
 
@@ -560,7 +672,6 @@ export async function updateBoardMember(formData: FormData) {
   const titleEn = String(formData.get("titleEn") ?? "").trim();
   if (!name || !titleEn) throw new Error("Name and title are required");
 
-  const committee = String(formData.get("committee") ?? "").trim();
   const photo = formData.get("photo");
   const photoUrl =
     photo instanceof File && photo.size > 0 ? await saveUploadedFile(photo, "board") : member.photoUrl;
@@ -570,28 +681,15 @@ export async function updateBoardMember(formData: FormData) {
     data: {
       name,
       title: toJsonField({ en: titleEn, km: titleEn }),
-      committee: committee || null,
       photoUrl,
-      sortOrder: Number(formData.get("sortOrder") ?? member.sortOrder) || 0,
     },
   });
 
   await logContentChange(actor.id, "board_member.update", "BoardMember", id);
-  revalidatePath("/en/about");
-  revalidatePath("/km/about");
+  revalidatePath("/en");
+  revalidatePath("/km");
   revalidatePath("/admin/content/people");
-}
-
-export async function deleteBoardMember(formData: FormData) {
-  const actor = await requireContentEditor();
-  const id = String(formData.get("id") ?? "");
-
-  await prisma.boardMember.delete({ where: { id } });
-
-  await logContentChange(actor.id, "board_member.delete", "BoardMember", id);
-  revalidatePath("/en/about");
-  revalidatePath("/km/about");
-  revalidatePath("/admin/content/people");
+  redirect("/admin/content/people?saved=1");
 }
 
 export async function updateMember(formData: FormData) {
@@ -640,6 +738,7 @@ export async function updateMember(formData: FormData) {
   revalidatePath(`/en/members/${member.slug}`);
   revalidatePath(`/km/members/${member.slug}`);
   revalidatePath("/admin/content/people");
+  redirect("/admin/content/people?saved=1");
 }
 
 export async function deleteMember(formData: FormData) {

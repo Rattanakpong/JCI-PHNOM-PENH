@@ -35,10 +35,7 @@ export default async function HomePage({
   const [slideRows, statRows, projectRows, eventRows, president] = await Promise.all([
     prisma.slide.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
     prisma.impactStat.findMany({ where: { key: { in: [...STAT_KEYS] } } }),
-    prisma.project.findMany({
-      orderBy: { createdAt: "desc" },
-      include: { photos: { orderBy: [{ year: "desc" }, { sortOrder: "asc" }], take: 1 } },
-    }),
+    prisma.project.findMany({ orderBy: { createdAt: "desc" } }),
     prisma.event.findMany({
       where: { published: true, startAt: { gte: new Date() } },
       include: { ticketTiers: true },
@@ -74,7 +71,7 @@ export default async function HomePage({
     slug: p.slug,
     title: localize(parseLocalizedText(p.title), locale),
     summary: localize(parseLocalizedText(p.summary), locale),
-    coverUrl: p.photos[0]?.url ?? null,
+    coverUrl: p.coverUrl,
     pillar: p.pillar,
     pillarLabel: tPillars(
       p.pillar as
@@ -164,7 +161,7 @@ function LeaderMessageSection({ president, locale }: { president: PresidentSumma
           alt={president.name}
           seed={president.id}
           aspect="aspect-[4/5]"
-          className="w-full lg:order-2"
+          className="mx-auto w-full max-w-sm lg:order-2"
         />
         <div className="lg:order-1">
           <p className="text-xs font-semibold uppercase tracking-wider text-brand-gold">
@@ -192,12 +189,16 @@ function ImpactSection({ stats }: { stats: { key: string; value: number }[] }) {
         <h2 className="mb-12 text-center text-sm font-semibold uppercase tracking-wider text-brand-navy/40">
           {t("title")}
         </h2>
-        <div className="grid grid-cols-2 gap-10 sm:grid-cols-4">
+        {/* Four across on every screen; on phones the numbers scale with the
+            viewport so "15,000+" still fits a quarter of the width. */}
+        <div className="grid grid-cols-4 gap-2 sm:gap-10">
           {stats.map((stat) => (
             <ImpactStat
               key={stat.key}
               value={stat.value}
               label={t(stat.key as "members" | "projects" | "events" | "beneficiaries")}
+              valueClassName="text-[clamp(1rem,5vw,1.5rem)] tracking-tight sm:text-5xl sm:tracking-normal"
+              labelClassName="mt-1 text-[11px] leading-tight sm:mt-2 sm:text-sm sm:leading-normal"
             />
           ))}
         </div>
@@ -211,7 +212,7 @@ function OurProjectsSection({ projects }: { projects: ProjectCarouselItem[] }) {
 
   return (
     <section className="section-y overflow-hidden border-t border-border bg-surface">
-      <div className="section">
+      <div className="section max-sm:px-6">
         <SectionHeading title={t("title")} subtitle={t("subtitle")} />
       </div>
 
@@ -264,17 +265,21 @@ function CtaBanner() {
   const t = useTranslations("home.cta");
 
   return (
-    <section className="border-t border-border bg-brand-navy">
-      <div className="section section-y text-center">
-        <h2 className="text-3xl font-bold text-white sm:text-4xl">{t("title")}</h2>
-        <p className="mx-auto mt-4 max-w-2xl text-white/70">{t("subtitle")}</p>
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Button asChild size="lg" variant="gold">
-            <Link href="/join">{t("join")}</Link>
-          </Button>
-          <Button asChild size="lg" variant="secondary" className="border-white/20 text-white hover:bg-white/10">
-            <Link href="/events">{t("event")}</Link>
-          </Button>
+    // A standalone card on the page background, so it reads as separate from the navy footer below.
+    // Flat JCI Primary Blue (#0088CE, see press-kit brand colors) — no gradient/glow so the text stays crisp.
+    <section className="section pb-16 sm:pb-24">
+      <div className="relative overflow-hidden rounded-3xl bg-brand-blue px-6 py-14 text-center shadow-card-hover sm:px-12 sm:py-20">
+        <div className="relative">
+          <h2 className="text-3xl font-bold text-white sm:text-4xl">{t("title")}</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-lg font-medium text-white">{t("subtitle")}</p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <Button asChild size="lg" variant="gold">
+              <Link href="/join">{t("join")}</Link>
+            </Button>
+            <Button asChild size="lg" variant="secondary" className="border-white text-white hover:bg-white/15">
+              <Link href="/events">{t("event")}</Link>
+            </Button>
+          </div>
         </div>
       </div>
     </section>

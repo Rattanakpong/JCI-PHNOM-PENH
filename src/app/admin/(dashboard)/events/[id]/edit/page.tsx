@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { getCurrentUser, hasRole } from "@/lib/auth";
 import { updateEvent } from "@/lib/actions/event-actions";
+import { EventTemplateFields, type EventFormValues } from "@/components/admin/event-template-fields";
+import { parseEventExtras } from "@/lib/event-extras";
 
 // Matches the datetime-local input format using the server runtime's local
 // getters — consistent with how `new Date(startAt)` on create interprets a
@@ -27,11 +29,30 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
 
   const title = parseLocalizedText(event.title);
   const description = parseLocalizedText(event.description);
+  const extras = parseEventExtras(event.description);
   const speakers = JSON.parse(event.speakers) as { name: string; title: string }[];
   const agenda = JSON.parse(event.agenda) as { time: string; title: string }[];
   const speakersText = speakers.map((s) => `${s.name} | ${s.title}`).join("\n");
   const agendaText = agenda.map((a) => `${a.time} | ${a.title}`).join("\n");
-  const [tier1, tier2] = event.ticketTiers;
+  const values: EventFormValues = {
+    title: title.en,
+    description: description.en,
+    startAt: toDatetimeLocalValue(event.startAt),
+    endAt: toDatetimeLocalValue(event.endAt),
+    location: event.location,
+    mapUrl: event.mapUrl ?? "",
+    highlights: extras.highlights,
+    agendaText,
+    speakersText,
+    tiers: event.ticketTiers.slice(0, 2).map((tier) => ({
+      name: parseLocalizedText(tier.name).en,
+      price: String(tier.priceUsd),
+      capacity: String(tier.capacity),
+      saleEndsAt: tier.saleEndsAt ? toDatetimeLocalValue(tier.saleEndsAt) : "",
+    })),
+    telegramGroupUrl: event.telegramGroupUrl ?? "",
+    photos: extras.photos,
+  };
 
   return (
     <div className="space-y-6">
@@ -41,57 +62,18 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
         <CardHeader>
           <CardTitle>{title.en}</CardTitle>
           <CardDescription>
-            Leave the banner field empty to keep the current image. A blank tier name leaves that
-            tier unchanged.
+            Same sections as the event page, top to bottom. Leave the banner empty to keep the current one.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={updateEvent} encType="multipart/form-data" className="grid gap-3 sm:grid-cols-2">
+          <form action={updateEvent} encType="multipart/form-data" className="space-y-3">
             <input type="hidden" name="id" value={event.id} />
-            <input name="titleEn" placeholder="Title (English)" defaultValue={title.en} required className="flex h-10 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm sm:col-span-2" />
-            <textarea name="descriptionEn" placeholder="Description (English)" defaultValue={description.en} required rows={2} className="flex w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm sm:col-span-2" />
-            <input name="location" placeholder="Location" defaultValue={event.location} required className="flex h-10 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm" />
-            <input name="mapUrl" placeholder="Map URL (optional)" defaultValue={event.mapUrl ?? ""} className="flex h-10 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm" />
-            <label className="space-y-1 text-sm text-brand-navy/70">
-              Start
-              <input name="startAt" type="datetime-local" defaultValue={toDatetimeLocalValue(event.startAt)} required className="flex h-10 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm" />
-            </label>
-            <label className="space-y-1 text-sm text-brand-navy/70">
-              End
-              <input name="endAt" type="datetime-local" defaultValue={toDatetimeLocalValue(event.endAt)} required className="flex h-10 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm" />
-            </label>
-            <input name="telegramGroupUrl" placeholder="Telegram group URL (optional)" defaultValue={event.telegramGroupUrl ?? ""} className="flex h-10 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm sm:col-span-2" />
-            <textarea name="speakers" placeholder={"Speakers, one per line: Name | Role"} defaultValue={speakersText} rows={2} className="flex w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm sm:col-span-2" />
-            <textarea name="agenda" placeholder={"Agenda, one per line: Time | Activity"} defaultValue={agendaText} rows={3} className="flex w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm sm:col-span-2" />
-            <label className="flex items-center gap-2 text-sm text-brand-navy/70 sm:col-span-2">
-              Replace banner photo (optional)
-              <input name="banner" type="file" accept="image/*" className="text-sm" />
-            </label>
-
-            <div className="grid gap-2 rounded-xl border border-border p-3 sm:col-span-2 sm:grid-cols-4">
-              <input name="tier1Name" placeholder="Tier 1 name" defaultValue={tier1 ? parseLocalizedText(tier1.name).en : ""} className="flex h-10 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm" />
-              <input name="tier1Price" type="number" step="0.01" min="0" placeholder="Price USD" defaultValue={tier1?.priceUsd} className="flex h-10 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm" />
-              <input name="tier1Capacity" type="number" min="1" placeholder="Capacity" defaultValue={tier1?.capacity} className="flex h-10 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm" />
-              <label className="space-y-1 text-xs text-brand-navy/60">
-                Sale ends (optional)
-                <input name="tier1SaleEndsAt" type="datetime-local" defaultValue={tier1?.saleEndsAt ? toDatetimeLocalValue(tier1.saleEndsAt) : ""} className="flex h-10 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm" />
-              </label>
-            </div>
-            <div className="grid gap-2 rounded-xl border border-border p-3 sm:col-span-2 sm:grid-cols-4">
-              <input name="tier2Name" placeholder="Tier 2 name (optional)" defaultValue={tier2 ? parseLocalizedText(tier2.name).en : ""} className="flex h-10 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm" />
-              <input name="tier2Price" type="number" step="0.01" min="0" placeholder="Price USD" defaultValue={tier2?.priceUsd} className="flex h-10 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm" />
-              <input name="tier2Capacity" type="number" min="1" placeholder="Capacity" defaultValue={tier2?.capacity} className="flex h-10 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm" />
-              <label className="space-y-1 text-xs text-brand-navy/60">
-                Sale ends (optional)
-                <input name="tier2SaleEndsAt" type="datetime-local" defaultValue={tier2?.saleEndsAt ? toDatetimeLocalValue(tier2.saleEndsAt) : ""} className="flex h-10 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm" />
-              </label>
-            </div>
-
+            <EventTemplateFields values={values} editing />
             <label className="flex items-center gap-2 text-sm text-brand-navy/70">
               <input type="checkbox" name="published" defaultChecked={event.published} />
               Published
             </label>
-            <div className="flex gap-2 sm:col-span-2">
+            <div className="flex gap-2">
               <Button type="submit" size="sm">Save Changes</Button>
               <Button type="button" size="sm" variant="outline" asChild>
                 <a href="/admin/events">Cancel</a>

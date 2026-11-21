@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { ArrowRight, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MediaTile } from "@/components/ui/media-placeholder";
 import { Link } from "@/i18n/navigation";
 import { parseLocalizedText } from "@/lib/json-field";
+import { MemberPortrait } from "@/components/members/member-portrait";
 
 export type MemberRow = {
   id: string;
@@ -30,7 +30,7 @@ export function MemberDirectory({
 }: {
   members: MemberRow[];
   locale: string;
-  labels: { searchPlaceholder: string; allYears: string; noResults: string };
+  labels: { searchPlaceholder: string; allYears: string; noResults: string; viewProfile: string };
 }) {
   const [query, setQuery] = useState("");
   const [year, setYear] = useState("all");
@@ -82,30 +82,51 @@ export function MemberDirectory({
           {labels.noResults}
         </p>
       ) : (
-        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="mt-8 grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 xl:grid-cols-4">
           {filtered.map((member) => {
             const jobTitle = member.jobTitle ? parseLocalizedText(member.jobTitle) : null;
             const localizedJobTitle = jobTitle ? jobTitle[locale as "en" | "km"] ?? jobTitle.en : null;
-            const subtitle = [localizedJobTitle, member.businessName].filter(Boolean).join(", ");
 
             return (
               <Link
                 key={member.id}
                 href={`/members/${member.slug}`}
-                className="group rounded-2xl border border-border bg-surface p-5 text-center shadow-card transition-shadow hover:shadow-card-hover"
+                className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-card transition-all duration-300 hover:-translate-y-1.5 hover:border-brand-blue/40 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <MediaTile
-                  src={member.photoUrl}
-                  alt={member.name}
-                  seed={member.id}
-                  aspect="aspect-square"
-                  className="mx-auto w-20 rounded-full transition-transform group-hover:-translate-y-1"
-                />
-                <p className="mt-3 font-bold text-brand-navy">{member.name}</p>
-                {subtitle && <p className="mt-1 text-sm text-brand-navy/60">{subtitle}</p>}
-                <p className="mt-2 text-xs font-semibold uppercase tracking-wider text-brand-gold">
-                  {member.joinYear}
-                </p>
+                <div className="relative">
+                  <MemberPortrait member={member} className="aspect-square" />
+                  {/* Join-year tab tucked against the left edge */}
+                  <span className="absolute left-0 top-4 rounded-r-full bg-brand-gold py-1 pl-3 pr-3.5 text-[11px] font-extrabold tracking-wider text-brand-navy shadow-sm">
+                    {member.joinYear}
+                  </span>
+                </div>
+                <div className="relative flex flex-1 flex-col p-3 sm:p-4">
+                  {/* Accent bar that sweeps across the card on hover */}
+                  <span
+                    aria-hidden
+                    className="absolute left-0 top-0 h-1 w-10 bg-brand-blue transition-all duration-500 ease-out group-hover:w-full"
+                  />
+                  {member.industry && (
+                    <p className="mb-1 truncate text-[10px] font-bold uppercase tracking-widest text-brand-navy/45 sm:text-[11px]">
+                      {member.industry}
+                    </p>
+                  )}
+                  <p className="text-base font-extrabold leading-tight text-brand-navy transition-colors group-hover:text-brand-blue sm:text-lg">
+                    {member.name}
+                  </p>
+                  {localizedJobTitle && (
+                    <p className="mt-1 line-clamp-2 text-xs text-brand-navy/70 sm:text-sm">{localizedJobTitle}</p>
+                  )}
+                  {member.businessName && (
+                    <p className="mt-0.5 line-clamp-1 text-xs font-semibold text-brand-blue sm:text-sm">
+                      {member.businessName}
+                    </p>
+                  )}
+                  <span className="mt-auto inline-flex items-center gap-1 pt-3 text-xs font-bold text-brand-navy/60 transition-colors group-hover:text-brand-blue sm:text-sm">
+                    {labels.viewProfile}
+                    <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+                  </span>
+                </div>
               </Link>
             );
           })}

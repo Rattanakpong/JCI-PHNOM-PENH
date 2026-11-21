@@ -22,7 +22,12 @@ export function MobileNav({
   }, [pathname]);
 
   return (
-    <div className="md:hidden">
+    <div className="flex items-center gap-2 lg:hidden">
+      {/* Always-visible Join CTA in the bar, so it isn't buried in the menu panel */}
+      <Button asChild size="sm">
+        <Link href="/join">{joinLabel}</Link>
+      </Button>
+
       <button
         type="button"
         aria-label={open ? "Close menu" : "Open menu"}
@@ -47,11 +52,8 @@ export function MobileNav({
             ))}
           </nav>
 
-          <div className="section flex items-center justify-between gap-3 border-t border-border py-4">
+          <div className="section flex border-t border-border py-4">
             <LanguageSwitcher />
-            <Button asChild size="sm">
-              <Link href="/join">{joinLabel}</Link>
-            </Button>
           </div>
         </div>
       )}

@@ -1,21 +1,23 @@
 // JCI Phnom Penh — Prisma schema
 //
-// Local dev runs on SQLite (zero setup, see DATABASE_URL in .env). SQLite's
-// Prisma connector doesn't support native enums, Json, or array columns, so
-// those are modeled as plain `String` here (enums as string unions enforced
-// in app code — see src/lib/enums.ts; Json/arrays as JSON-encoded strings
-// parsed via src/lib/json-field.ts). Swap `provider` to "postgresql" and
-// DATABASE_URL to Supabase for production, then promote those fields back
-// to native `enum`/`Json`/`String[]` — see README "Switching to
-// Postgres/Supabase".
+// Runs on Supabase Postgres (DATABASE_URL = pooled connection, DIRECT_URL =
+// direct connection used by migrations; see .env). The schema was originally
+// built on SQLite, whose Prisma connector doesn't support native enums, Json,
+// or array columns, so those are still modeled as plain `String` here (enums
+// as string unions enforced in app code — see src/lib/enums.ts; Json/arrays
+// as JSON-encoded strings parsed via src/lib/json-field.ts). They can
+// optionally be promoted to native `enum`/`Json`/`String[]` — see README
+// "Switching to Postgres/Supabase". The old SQLite migration history is kept
+// in prisma/sqlite-migrations for reference.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ---------------------------------------------------------------------------
@@ -178,13 +180,20 @@ model Project {
   title           String // JSON string: { "en": "...", "km": "..." }
   summary         String // JSON string: { "en": "...", "km": "..." }
   impactReportUrl String?
+  coverUrl        String? // card/cover image — independent of the yearly activity photos
   partnerLogos    String   @default("[]") // JSON string[] — Postgres: switch to native `String[]`
   pillar          String   @default("COMMUNITY_IMPACT")
+  // Schedule for the "Upcoming" calendar. Date-only: stored as UTC midnight of
+  // the chosen day and always formatted in UTC (see src/lib/project-dates.ts).
+  startDate       DateTime?
+  endDate         DateTime? // null = single-day project
+  location        String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   photos ProjectPhoto[]
 
+  @@index([startDate])
   @@map("projects")
 }
 

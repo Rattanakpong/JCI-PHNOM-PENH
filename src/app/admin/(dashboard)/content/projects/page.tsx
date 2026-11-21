@@ -9,6 +9,8 @@ import { getCurrentUser, hasRole } from "@/lib/auth";
 import { PILLAR_COLORS } from "@/lib/pillar-colors";
 import type { ProjectPillar } from "@/lib/enums";
 import { ConfirmDeleteForm } from "@/components/admin/confirm-delete-form";
+import { ProjectScheduleFields } from "@/components/admin/project-schedule-fields";
+import { formatDateRange, isUpcoming } from "@/lib/project-dates";
 import {
   createProject,
   addProjectPhotos,
@@ -56,6 +58,10 @@ export default async function AdminProjectsPage() {
               className="flex w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm"
             />
             <label className="flex items-center gap-2 text-sm text-brand-navy/70">
+              Cover image (shown on project cards — not part of the activity photos)
+              <input name="cover" type="file" accept="image/*" className="text-sm" />
+            </label>
+            <label className="flex items-center gap-2 text-sm text-brand-navy/70">
               Partner logos
               <input name="partnerLogos" type="file" accept="image/*" multiple className="text-sm" />
             </label>
@@ -77,6 +83,7 @@ export default async function AdminProjectsPage() {
                 ))}
               </select>
             </label>
+            <ProjectScheduleFields />
             <Button type="submit" size="sm">Add Project</Button>
           </form>
 
@@ -91,12 +98,22 @@ export default async function AdminProjectsPage() {
                   <div>
                     <span className="font-medium text-brand-navy">{title.en}</span>
                     <span className="ml-2 text-xs text-brand-navy/50">
+                      {project.coverUrl ? "Cover set" : "No cover"} ·{" "}
                       {project.photos.length > 0
-                        ? `${project.photos.length} photo${project.photos.length === 1 ? "" : "s"} · ${years.join(", ")}`
-                        : "No photos yet"}
+                        ? `${project.photos.length} activity photo${project.photos.length === 1 ? "" : "s"} · ${years.join(", ")}`
+                        : "No activity photos yet"}
                     </span>
+                    {project.startDate && (
+                      <span className="mt-0.5 block text-xs text-brand-navy/60">
+                        {formatDateRange(project.startDate, project.endDate, "en")}
+                        {project.location && ` · ${project.location}`}
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
+                    {isUpcoming(project.startDate, project.endDate) && (
+                      <Badge className="border-transparent bg-brand-blue/10 text-brand-blue">Upcoming</Badge>
+                    )}
                     <Badge variant="outline" className={PILLAR_COLORS[project.pillar as ProjectPillar].badgeClassName}>
                       {pillarLabel}
                     </Badge>
@@ -121,9 +138,9 @@ export default async function AdminProjectsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Project Photos</CardTitle>
+          <CardTitle>Activity Photos</CardTitle>
           <CardDescription>
-            Upload photos for a project, tagged by year — shown as a dedicated section per year on the project page.
+            Upload a project&rsquo;s activity photos, tagged by year — visitors pick the year from a dropdown on the project page. These are separate from the cover image, which is set when adding or editing the project. Photos show in 4:3 landscape frames; landscape photos (e.g. 2048×1365) work best, and other shapes are cropped to fit.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

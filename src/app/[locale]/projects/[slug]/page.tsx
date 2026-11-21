@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MediaTile } from "@/components/ui/media-placeholder";
 import { Link } from "@/i18n/navigation";
+import { ProjectYearGallery } from "@/components/projects/project-year-gallery";
 import { prisma } from "@/lib/prisma";
 import { parseLocalizedText, parseStringArray } from "@/lib/json-field";
 import { PILLAR_COLORS } from "@/lib/pillar-colors";
@@ -34,15 +35,20 @@ export default async function ProjectDetailPage({
   const localizedTitle = title[locale as "en" | "km"] ?? title.en;
   const localizedSummary = summary[locale as "en" | "km"] ?? summary.en;
 
-  // Most JCI projects run every year, so photos are grouped into one
-  // section per year (most recent first) rather than a single flat gallery.
+  // Most JCI projects run every year, so photos are grouped by year and the
+  // gallery shows one year at a time.
   const photosByYear = new Map<number, typeof project.photos>();
   for (const photo of project.photos) {
     const list = photosByYear.get(photo.year) ?? [];
     list.push(photo);
     photosByYear.set(photo.year, list);
   }
-  const years = [...photosByYear.keys()].sort((a, b) => b - a);
+  const years = [...photosByYear.keys()]
+    .sort((a, b) => b - a)
+    .map((year) => ({
+      year,
+      photos: photosByYear.get(year)!.map((photo) => ({ id: photo.id, url: photo.url })),
+    }));
 
   return (
     <>
@@ -67,32 +73,14 @@ export default async function ProjectDetailPage({
       </div>
 
       <div className="section section-y space-y-10 pt-6">
-        <div>
-          <h2 className="mb-4 text-lg font-bold text-brand-navy">{t("galleryTitle")}</h2>
-          {years.length === 0 ? (
+        {years.length === 0 ? (
+          <div>
+            <h2 className="mb-4 text-lg font-bold text-brand-navy">{t("galleryTitle")}</h2>
             <MediaTile alt={localizedTitle} seed={project.id} aspect="aspect-[16/9]" />
-          ) : (
-            <div className="space-y-8">
-              {years.map((year) => (
-                <div key={year}>
-                  <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-brand-gold">
-                    {year}
-                  </p>
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {photosByYear.get(year)!.map((photo) => (
-                      <MediaTile
-                        key={photo.id}
-                        src={photo.url}
-                        alt={`${localizedTitle} ${year}`}
-                        seed={photo.id}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          <ProjectYearGallery title={localizedTitle} heading={t("galleryTitle")} years={years} />
+        )}
 
         {partners.length > 0 && (
           <div>

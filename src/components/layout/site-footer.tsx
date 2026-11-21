@@ -7,8 +7,9 @@ export function SiteFooter() {
 
   return (
     <footer className="bg-brand-navy text-white/80">
-      <div className="section grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
-        <div>
+      {/* Logo + three link columns in one row; on phones the logo takes its own row above the columns */}
+      <div className="section grid grid-cols-3 gap-x-6 gap-y-8 py-14 sm:grid-cols-4 sm:gap-10">
+        <div className="col-span-3 sm:col-span-1">
           <Image
             src="/brand/logo-white.png"
             alt="JCI Phnom Penh"

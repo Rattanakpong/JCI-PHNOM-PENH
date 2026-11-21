@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface CounterProps {
   value: number;
@@ -42,16 +43,24 @@ function useCountUp(target: number, durationMs = 1400) {
   return { value, ref };
 }
 
-export function ImpactStat({ value, label, suffix = "+" }: CounterProps) {
+// `valueClassName` / `labelClassName` override the default text sizes, e.g.
+// for tighter layouts that fit four stats across a phone screen.
+export function ImpactStat({
+  value,
+  label,
+  suffix = "+",
+  valueClassName,
+  labelClassName,
+}: CounterProps & { valueClassName?: string; labelClassName?: string }) {
   const { value: animated, ref } = useCountUp(value);
 
   return (
     <div ref={ref} className="text-center">
-      <p className="text-4xl font-extrabold text-brand-blue sm:text-5xl">
+      <p className={cn("text-4xl font-extrabold text-brand-blue sm:text-5xl", valueClassName)}>
         {animated.toLocaleString()}
         {suffix}
       </p>
-      <p className="mt-2 text-sm font-medium text-brand-navy/70">{label}</p>
+      <p className={cn("mt-2 text-sm font-medium text-brand-navy/70", labelClassName)}>{label}</p>
     </div>
   );
 }

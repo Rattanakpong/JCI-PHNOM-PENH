@@ -30,6 +30,7 @@ export default async function MembersPage({
             searchPlaceholder: t("searchPlaceholder"),
             allYears: t("allYears"),
             noResults: t("noResults"),
+            viewProfile: t("viewProfile"),
           }}
         />
       </div>

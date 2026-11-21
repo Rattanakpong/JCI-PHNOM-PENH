@@ -1,16 +1,16 @@
 import { notFound } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, hasRole } from "@/lib/auth";
 import { InquiryStatusSelect } from "@/components/admin/inquiry-status-select";
-import { updateMembershipStatus, updateSponsorStatus, updateContactStatus } from "@/lib/actions/inquiry-actions";
+import { updateMembershipStatus, updateContactStatus } from "@/lib/actions/inquiry-actions";
 
 export default async function AdminInquiriesPage() {
   const currentUser = await getCurrentUser();
   if (!hasRole(currentUser, ["SUPER_ADMIN", "BOARD_ADMIN"])) notFound();
 
-  const [applications, sponsors, contacts] = await Promise.all([
+  const [applications, contacts] = await Promise.all([
     prisma.membershipApplication.findMany({ orderBy: { createdAt: "desc" } }),
-    prisma.sponsorInquiry.findMany({ orderBy: { createdAt: "desc" } }),
     prisma.contactInquiry.findMany({ orderBy: { createdAt: "desc" } }),
   ]);
 
@@ -19,9 +19,19 @@ export default async function AdminInquiriesPage() {
       <h1 className="text-2xl font-bold text-brand-navy">Inquiries</h1>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-brand-navy/50">
-          Membership Applications
-        </h2>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-brand-navy/50">
+            Membership Applications
+          </h2>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <a href="/api/admin/membership-applications/export?format=xlsx">Export .xlsx</a>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <a href="/api/admin/membership-applications/export?format=csv">Export .csv</a>
+            </Button>
+          </div>
+        </div>
         <div className="overflow-x-auto rounded-xl border border-border bg-surface">
           <table className="w-full text-sm">
             <thead className="bg-muted text-left text-xs font-semibold uppercase text-brand-navy/60">
@@ -63,43 +73,6 @@ export default async function AdminInquiriesPage() {
                 <tr>
                   <td colSpan={5} className="px-4 py-6 text-center text-brand-navy/50">
                     No applications yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-brand-navy/50">
-          Sponsor Inquiries
-        </h2>
-        <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-          <table className="w-full text-sm">
-            <thead className="bg-muted text-left text-xs font-semibold uppercase text-brand-navy/60">
-              <tr>
-                <th className="px-4 py-3">Organization</th>
-                <th className="px-4 py-3">Contact</th>
-                <th className="px-4 py-3">Proposal</th>
-                <th className="px-4 py-3">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sponsors.map((s) => (
-                <tr key={s.id} className="border-t border-border">
-                  <td className="px-4 py-3 font-medium text-brand-navy">{s.orgName}</td>
-                  <td className="px-4 py-3 text-brand-navy/70">{s.contactEmail}</td>
-                  <td className="max-w-xs truncate px-4 py-3 text-brand-navy/70">{s.proposal}</td>
-                  <td className="px-4 py-3">
-                    <InquiryStatusSelect id={s.id} status={s.status} action={updateSponsorStatus} />
-                  </td>
-                </tr>
-              ))}
-              {sponsors.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-brand-navy/50">
-                    No sponsor inquiries yet.
                   </td>
                 </tr>
               )}

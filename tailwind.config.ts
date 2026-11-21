@@ -61,10 +61,25 @@ const config: Config = {
           from: { opacity: "0", transform: "translateY(8px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
+        "slide-progress": { from: { width: "0%" }, to: { width: "100%" } },
+        float: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-12px)" },
+        },
+        blob: {
+          "0%, 100%": { transform: "translate(0, 0) scale(1)" },
+          "33%": { transform: "translate(30px, -40px) scale(1.1)" },
+          "66%": { transform: "translate(-20px, 20px) scale(0.95)" },
+        },
+        shimmer: { from: { backgroundPosition: "0% 50%" }, to: { backgroundPosition: "200% 50%" } },
       },
       animation: {
         "fade-in": "fade-in 0.2s ease-out",
         "slide-up": "slide-up 0.25s ease-out",
+        "slide-progress": "slide-progress 6s linear forwards", // duration overridden inline by Slideshow
+        float: "float 6s ease-in-out infinite",
+        blob: "blob 14s ease-in-out infinite",
+        shimmer: "shimmer 6s linear infinite",
       },
     },
   },

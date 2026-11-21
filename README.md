@@ -3,19 +3,28 @@
 Bilingual (EN/KM) public site + internal admin dashboard for JCI Phnom Penh.
 Fully functional locally: real database, working membership/sponsor/event
 registration, working admin login, CMS editing, payment verification, and
-.xlsx/.csv export — all on a zero-setup local SQLite database.
+.xlsx/.csv export — on a Supabase Postgres database, with uploads in
+Supabase Storage.
 
 ## Getting started
 
 ```bash
 npm install
-npx prisma migrate dev   # creates/updates prisma/dev.db (already run once; re-run after pulling schema changes)
-npx prisma db seed       # (re)loads demo data — 3 admin accounts, events, news, projects, board, impact stats
+npx prisma generate
 npm run dev
 ```
 
-Open http://localhost:3000/en (or `/km`). No external accounts or API keys
-are required — `.env` already points `DATABASE_URL` at `file:./dev.db`.
+Open http://localhost:3000/en (or `/km`). `.env` points `DATABASE_URL` /
+`DIRECT_URL` at the live Supabase database (copy `.env.example` and fill in
+the values from the Supabase dashboard on a new machine), so **local changes
+edit real site data**.
+
+Schema changes: edit `prisma/schema.prisma`, then `npx prisma migrate dev
+--create-only` to review the SQL before `npx prisma migrate deploy`.
+
+> ⚠️ `npx prisma db seed` writes demo data into the live database and
+> **deletes** any board members / projects not in the seed list. Don't run it
+> against Supabase unless you mean to reset that content.
 
 **Admin login** at http://localhost:3000/admin/login — password `demo1234` for all:
 
@@ -63,11 +72,17 @@ whole app without creating any external account. `src/lib/auth.ts`'s
 Supabase Auth automatically once `NEXT_PUBLIC_SUPABASE_URL` /
 `NEXT_PUBLIC_SUPABASE_ANON_KEY` are set — no code changes needed to switch.
 
-## Switching to Postgres/Supabase for production
+## Postgres/Supabase
 
-1. In `prisma/schema.prisma`, set `datasource db { provider = "postgresql" }`
-   and point `DATABASE_URL` at your Supabase connection string.
-2. Promote the fields SQLite couldn't express natively back to their real
+Done: `prisma/schema.prisma` uses `postgresql` (old SQLite migrations are in
+`prisma/sqlite-migrations`, baseline is `prisma/migrations/0_init`), Supabase
+Auth is enabled via the `NEXT_PUBLIC_SUPABASE_*` vars, and `saveUploadedFile`
+(`src/lib/storage.ts`) stores uploads in the public `jci-media` bucket once
+`SUPABASE_SERVICE_ROLE_KEY` is set (local `/public/uploads` otherwise).
+
+Remaining / optional:
+
+1. Promote the fields SQLite couldn't express natively back to their real
    types (search the schema for the inline comments marking each one):
    - `Role`, `RegistrationStatus`, `PaymentStatus` → real Prisma `enum`s
      instead of plain `String` (drop `src/lib/enums.ts`'s runtime checks, or
@@ -78,24 +93,19 @@ Supabase Auth automatically once `NEXT_PUBLIC_SUPABASE_URL` /
      JSON-encoded `String`; and every other JSON-encoded field (`Event.title`,
      `NewsPost.body`, etc.) → native `Json`. Drop the `parseLocalizedText`/
      `toJsonField` calls in `src/lib/json-field.ts` once that's done.
-3. Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
-   `SUPABASE_SERVICE_ROLE_KEY` — `getCurrentUser()` picks these up
-   automatically.
-4. Swap `src/lib/uploads.ts`'s call from the local `/api/uploads` route to
-   `uploadPaymentProof` in `src/lib/supabase/storage.ts`.
-5. Swap `src/lib/khqr.ts`'s local payload builder for a call to ABA PayWay's
+2. When payment-receipt uploads are wired into the UI, store them in a
+   private bucket and show them to admins via signed URLs (`jci-media` is
+   public).
+3. Swap `src/lib/khqr.ts`'s local payload builder for a call to ABA PayWay's
    API, which additionally returns a transaction reference you can poll
    server-side for real payment verification instead of trusting the
    uploaded screenshot alone.
-6. Run `npx prisma migrate dev` against the new database and re-seed (or
-   migrate real data over).
 
 ## Stack
 
 - **Next.js 14** (App Router, TypeScript) + **Tailwind CSS**
 - **next-intl** for EN/KM routing (`/en/...`, `/km/...`) and translations
-- **Prisma** on **SQLite** locally (zero setup); swap to **Postgres/Supabase**
-  for production — see above
+- **Prisma** on **Supabase Postgres**; **Supabase Storage** for uploads
 - **ABA Pay / KHQR** dynamic QR generation for event payments
 - shadcn-style UI primitives built on Radix (`src/components/ui`)
 

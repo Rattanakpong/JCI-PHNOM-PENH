@@ -9,7 +9,6 @@ import {
   UsersRound,
   Inbox,
   Settings,
-  Users,
   ShieldCheck,
   ClipboardList,
 } from "lucide-react";
@@ -59,7 +58,6 @@ const NAV_GROUPS: Array<{ section: string; items: NavItem[] }> = [
   {
     section: "Administration",
     items: [
-      { href: "/admin/users", label: "Users & Roles", icon: Users, roles: ["SUPER_ADMIN"] },
       { href: "/admin/audit-log", label: "Audit Log", icon: ShieldCheck, roles: ["SUPER_ADMIN"] },
       { href: "/admin/guide", label: "Admin Operation Guide", icon: ClipboardList, roles: ["SUPER_ADMIN", "BOARD_ADMIN", "EVENT_ORGANIZER"] },
     ],

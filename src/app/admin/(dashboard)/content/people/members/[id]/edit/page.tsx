@@ -86,20 +86,24 @@ export default async function EditMemberPage({ params }: { params: Promise<{ id:
               Replace photo (optional)
               <input name="photo" type="file" accept="image/*" className="text-sm" />
             </label>
-            <textarea
-              name="bioEn"
-              placeholder="Short bio (optional)"
-              defaultValue={bio?.en ?? ""}
-              rows={2}
-              className="flex w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm sm:col-span-3"
-            />
-            <textarea
-              name="jciExperienceEn"
-              placeholder="JCI experience (optional)"
-              defaultValue={jciExperience?.en ?? ""}
-              rows={2}
-              className="flex w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm sm:col-span-3"
-            />
+            <label className="grid gap-1.5 text-sm font-medium text-brand-navy sm:col-span-3">
+              Short bio (optional)
+              <textarea name="bioEn" defaultValue={bio?.en ?? ""} rows={2} className="flex w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm font-normal text-brand-navy" />
+            </label>
+            <label className="grid gap-1.5 text-sm font-medium text-brand-navy sm:col-span-3">
+              JCI experience (optional)
+                <span className="text-xs font-normal text-brand-navy/60">
+                  One role per line. Start with a year to show it on the timeline, e.g. &quot;2024 – Vice President&quot;.
+                  &quot;Joined JCI Phnom Penh&quot; is added automatically from the join year.
+                </span>
+              <textarea
+                name="jciExperienceEn"
+                placeholder={"2024 – Vice President\n2023 – Project Director, Sharing of Smile"}
+                defaultValue={jciExperience?.en ?? ""}
+                rows={4}
+                className="flex w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm font-normal text-brand-navy"
+              />
+            </label>
             <div className="flex gap-2 sm:col-span-3">
               <Button type="submit" size="sm">Save Changes</Button>
               <Button type="button" size="sm" variant="outline" asChild>

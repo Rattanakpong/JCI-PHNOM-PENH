@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { ArrowLeft, Calendar, Clock, MapPin, ExternalLink, Ticket } from "lucide-react";
+import { ArrowLeft, Calendar, CheckCircle2, Clock, MapPin, ExternalLink, Ticket } from "lucide-react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,8 @@ import { MediaTile } from "@/components/ui/media-placeholder";
 import { Link } from "@/i18n/navigation";
 import { prisma } from "@/lib/prisma";
 import { parseLocalizedText } from "@/lib/json-field";
+import { parseEventExtras } from "@/lib/event-extras";
+import { PhotoGallery } from "@/components/ui/photo-gallery";
 import {
   RegistrationModal,
   type RegistrationEvent,
@@ -42,6 +44,7 @@ export default async function EventDetailPage({
 
   const title = parseLocalizedText(event.title);
   const description = parseLocalizedText(event.description);
+  const { highlights, photos } = parseEventExtras(event.description);
   const speakers: Speaker[] = JSON.parse(event.speakers || "[]");
   const agenda: AgendaItem[] = JSON.parse(event.agenda || "[]");
   const localizedTitle = title[locale as "en" | "km"] ?? title.en;
@@ -139,6 +142,20 @@ export default async function EventDetailPage({
             <p className="whitespace-pre-line text-brand-navy/70">{localizedDescription}</p>
           </div>
 
+          {highlights.length > 0 && (
+            <div className="rounded-xl bg-muted p-5 sm:p-6">
+              <h2 className="mb-3 text-lg font-bold text-brand-navy">{t("highlights")}</h2>
+              <ul className="space-y-2">
+                {highlights.map((highlight, i) => (
+                  <li key={i} className="flex gap-3 text-brand-navy/80">
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-brand-blue" />
+                    <span>{highlight}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {agenda.length > 0 && (
             <div>
               <h2 className="mb-4 text-lg font-bold text-brand-navy">{t("agenda")}</h2>
@@ -174,6 +191,16 @@ export default async function EventDetailPage({
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {photos.length > 0 && (
+            <div>
+              <h2 className="mb-4 text-lg font-bold text-brand-navy">{t("photos")}</h2>
+              <PhotoGallery
+                photos={photos.map((photo) => ({ id: photo.url, url: photo.url, caption: photo.caption || null }))}
+                alt={localizedTitle}
+              />
             </div>
           )}
         </div>

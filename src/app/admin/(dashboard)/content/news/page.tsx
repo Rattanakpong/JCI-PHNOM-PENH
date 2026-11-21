@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getCurrentUser, hasRole } from "@/lib/auth";
 import { ConfirmDeleteForm } from "@/components/admin/confirm-delete-form";
+import { NewsTemplateFields } from "@/components/admin/news-template-fields";
 import {
   createNewsPost,
   addNewsPhotos,
@@ -31,32 +32,15 @@ export default async function AdminNewsPage() {
       <Card>
         <CardHeader>
           <CardTitle>News Posts</CardTitle>
-          <CardDescription>New posts publish immediately when &ldquo;Publish now&rdquo; is checked.</CardDescription>
+          <CardDescription>
+            Every article uses the same template: fill in the numbered sections and they appear on the page in that
+            order. Optional sections left empty are skipped. Posts publish immediately when &ldquo;Publish now&rdquo; is
+            checked.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <form action={createNewsPost} encType="multipart/form-data" className="space-y-3">
-            <input
-              name="titleEn"
-              placeholder="Title (English)"
-              required
-              className="flex h-10 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm"
-            />
-            <textarea
-              name="bodyEn"
-              placeholder="Body (Markdown, English)"
-              required
-              rows={3}
-              className="flex w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm"
-            />
-            <label className="flex items-center gap-2 text-sm text-brand-navy/70">
-              Cover photo
-              <input name="coverImage" type="file" accept="image/*" className="text-sm" />
-            </label>
-            <input
-              name="coverCaption"
-              placeholder="Cover photo caption (optional)"
-              className="flex h-10 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm"
-            />
+            <NewsTemplateFields />
             <label className="flex items-center gap-2 text-sm text-brand-navy/70">
               <input type="checkbox" name="published" />
               Publish now

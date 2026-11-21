@@ -18,7 +18,7 @@ export default async function EditBoardMemberPage({ params }: { params: Promise<
 
   return (
     <div className="max-w-xl space-y-6">
-      <h1 className="text-2xl font-bold text-brand-navy">Edit Board Member</h1>
+      <h1 className="text-2xl font-bold text-brand-navy">Edit Local President</h1>
 
       <Card>
         <CardHeader>
@@ -40,19 +40,6 @@ export default async function EditBoardMemberPage({ params }: { params: Promise<
               placeholder="Title (e.g. VP of Projects)"
               defaultValue={title.en}
               required
-              className="flex h-10 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm"
-            />
-            <input
-              name="sortOrder"
-              type="number"
-              placeholder="Sort order"
-              defaultValue={member.sortOrder}
-              className="flex h-10 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm"
-            />
-            <input
-              name="committee"
-              placeholder="Committee (blank = Executive Board)"
-              defaultValue={member.committee ?? ""}
               className="flex h-10 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm sm:col-span-2"
             />
             <label className="flex h-10 items-center gap-2 text-sm text-brand-navy/70 sm:col-span-2">

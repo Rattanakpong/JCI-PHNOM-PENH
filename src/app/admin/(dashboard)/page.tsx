@@ -10,7 +10,6 @@ export default async function AdminDashboardPage() {
     pendingPayments,
     totalProjects,
     newMembershipApplications,
-    newSponsorInquiries,
     newContactInquiries,
   ] = await Promise.all([
     prisma.event.count({ where: { startAt: { gte: new Date() } } }),
@@ -18,10 +17,9 @@ export default async function AdminDashboardPage() {
     prisma.payment.count({ where: { status: "SUBMITTED" } }),
     prisma.project.count(),
     prisma.membershipApplication.count({ where: { status: "NEW" } }),
-    prisma.sponsorInquiry.count({ where: { status: "NEW" } }),
     prisma.contactInquiry.count({ where: { status: "NEW" } }),
   ]);
-  const newInquiries = newMembershipApplications + newSponsorInquiries + newContactInquiries;
+  const newInquiries = newMembershipApplications + newContactInquiries;
 
   const stats = [
     { label: "Upcoming Events", value: upcomingEvents },

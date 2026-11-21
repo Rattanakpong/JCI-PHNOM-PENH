@@ -1,11 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { toJsonField } from "@/lib/json-field";
 import { saveUploadedFile } from "@/lib/storage";
 import { requireEventOrganizer, logContentChange } from "@/lib/actions/admin-guards";
-import { parseSpeakers, parseAgenda } from "@/lib/actions/event-helpers";
+import { parseSpeakers, parseAgenda, readEventExtras } from "@/lib/actions/event-helpers";
+import { parseEventExtras, serializeEventDescription } from "@/lib/event-extras";
 
 export async function updateEvent(formData: FormData) {
   const actor = await requireEventOrganizer();
@@ -29,6 +31,7 @@ export async function updateEvent(formData: FormData) {
   const telegramGroupUrl = String(formData.get("telegramGroupUrl") ?? "").trim() || null;
   const speakers = parseSpeakers(String(formData.get("speakers") ?? ""));
   const agenda = parseAgenda(String(formData.get("agenda") ?? ""));
+  const extras = await readEventExtras(formData, parseEventExtras(event.description).photos);
 
   const banner = formData.get("banner");
   const bannerUrl =
@@ -38,7 +41,7 @@ export async function updateEvent(formData: FormData) {
     where: { id },
     data: {
       title: toJsonField({ en: titleEn, km: titleEn }),
-      description: toJsonField({ en: descriptionEn, km: descriptionEn }),
+      description: serializeEventDescription(descriptionEn, extras),
       location,
       mapUrl,
       bannerUrl,
@@ -77,6 +80,7 @@ export async function updateEvent(formData: FormData) {
   revalidatePath(`/en/events/${event.slug}`);
   revalidatePath(`/km/events/${event.slug}`);
   revalidatePath("/admin/events");
+  redirect("/admin/events?saved=1");
 }
 
 export async function deleteEvent(formData: FormData) {

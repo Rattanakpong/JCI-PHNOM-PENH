@@ -29,3 +29,13 @@ export async function getSiteSettings(): Promise<SiteSettings> {
 export function phoneToTelHref(phone: string): string {
   return `tel:${phone.replace(/[^\d+]/g, "")}`;
 }
+
+// Uploaded organizational-structure chart shown on /about, managed from
+// /admin/content/people. Stored as a site setting rather than in
+// DEFAULT_SITE_SETTINGS so it doesn't appear as a text field on /admin/settings.
+export const ORG_STRUCTURE_IMAGE_KEY = "orgStructureImageUrl";
+
+export async function getOrgStructureImageUrl(): Promise<string | null> {
+  const row = await prisma.siteSetting.findUnique({ where: { key: ORG_STRUCTURE_IMAGE_KEY } });
+  return row?.value || null;
+}

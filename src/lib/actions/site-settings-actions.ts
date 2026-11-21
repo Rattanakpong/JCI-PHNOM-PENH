@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireContentEditor, logContentChange } from "@/lib/actions/admin-guards";
 import { SITE_SETTING_KEYS } from "@/lib/site-settings";
@@ -22,4 +23,5 @@ export async function updateSiteSettings(formData: FormData) {
   revalidatePath("/en/contact");
   revalidatePath("/km/contact");
   revalidatePath("/admin/settings");
+  redirect("/admin/settings?saved=1");
 }

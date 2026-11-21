@@ -1,7 +1,6 @@
-// Single entry point the UI calls to store a user-uploaded file. Routes to
-// the local-disk /api/uploads endpoint for now; swap the body for
-// `uploadPaymentProof` from src/lib/supabase/storage.ts once Supabase
-// Storage is configured in production.
+// Single entry point the UI calls to store a user-uploaded file. Posts to
+// /api/uploads, which stores it via saveUploadedFile (src/lib/storage.ts) —
+// Supabase Storage when configured, local disk otherwise.
 export async function uploadPaymentProof(file: File, registrationId: string): Promise<string> {
   const formData = new FormData();
   formData.append("file", file);
