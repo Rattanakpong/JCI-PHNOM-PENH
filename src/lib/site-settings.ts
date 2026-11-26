@@ -39,3 +39,15 @@ export async function getOrgStructureImageUrl(): Promise<string | null> {
   const row = await prisma.siteSetting.findUnique({ where: { key: ORG_STRUCTURE_IMAGE_KEY } });
   return row?.value || null;
 }
+
+// Uploaded "About JCI Phnom Penh" photo shown on the homepage, managed from
+// /admin/content/homepage. Same pattern as ORG_STRUCTURE_IMAGE_KEY — stored
+// as a site setting rather than in DEFAULT_SITE_SETTINGS so it doesn't
+// appear as a text field on /admin/settings. Falls back to a placeholder
+// gradient (MediaTile) until an admin uploads one.
+export const HOME_ABOUT_IMAGE_KEY = "homeAboutImageUrl";
+
+export async function getHomeAboutImageUrl(): Promise<string | null> {
+  const row = await prisma.siteSetting.findUnique({ where: { key: HOME_ABOUT_IMAGE_KEY } });
+  return row?.value || null;
+}

@@ -11,6 +11,7 @@ import { MediaTile } from "@/components/ui/media-placeholder";
 import { prisma } from "@/lib/prisma";
 import { parseLocalizedText, type LocalizedText } from "@/lib/json-field";
 import { getTranslations } from "next-intl/server";
+import { getHomeAboutImageUrl } from "@/lib/site-settings";
 
 // Impact stats, events, projects, news, and the board roster are all
 // editable via the admin CMS, so this page must re-query Prisma per
@@ -32,7 +33,7 @@ export default async function HomePage({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const [slideRows, statRows, projectRows, eventRows, president] = await Promise.all([
+  const [slideRows, statRows, projectRows, eventRows, president, homeAboutImageUrl] = await Promise.all([
     prisma.slide.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
     prisma.impactStat.findMany({ where: { key: { in: [...STAT_KEYS] } } }),
     prisma.project.findMany({ orderBy: { createdAt: "desc" } }),
@@ -42,6 +43,7 @@ export default async function HomePage({
       orderBy: { startAt: "asc" },
     }),
     prisma.boardMember.findFirst({ orderBy: { sortOrder: "asc" } }),
+    getHomeAboutImageUrl(),
   ]);
 
   const stats = STAT_KEYS.map((key) => ({
@@ -96,7 +98,7 @@ export default async function HomePage({
   return (
     <>
       <Slideshow slides={slides} categoryLabels={categoryLabels} />
-      <AboutBriefSection />
+      <AboutBriefSection imageUrl={homeAboutImageUrl} />
       <LeaderMessageSection president={president} locale={locale} />
       <OurProjectsSection projects={projects} />
       <UpcomingEventsSection events={events} />
@@ -106,7 +108,7 @@ export default async function HomePage({
   );
 }
 
-function AboutBriefSection() {
+function AboutBriefSection({ imageUrl }: { imageUrl: string | null }) {
   const t = useTranslations("home.about");
 
   return (
@@ -130,6 +132,7 @@ function AboutBriefSection() {
 
         <div className="animate-fade-in [animation-delay:150ms]">
           <MediaTile
+            src={imageUrl}
             alt={t("title")}
             seed="home-about-brief"
             aspect="aspect-[4/3]"

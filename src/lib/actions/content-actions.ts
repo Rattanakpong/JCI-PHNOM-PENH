@@ -10,7 +10,7 @@ import { requireContentEditor, requireEventOrganizer, logContentChange } from "@
 import { parseSpeakers, parseAgenda, readEventExtras } from "@/lib/actions/event-helpers";
 import { serializeEventDescription } from "@/lib/event-extras";
 import { parseDateInput } from "@/lib/project-dates";
-import { ORG_STRUCTURE_IMAGE_KEY } from "@/lib/site-settings";
+import { ORG_STRUCTURE_IMAGE_KEY, HOME_ABOUT_IMAGE_KEY } from "@/lib/site-settings";
 import {
   parseNewsBody,
   sanitizeTemplate,
@@ -365,6 +365,37 @@ export async function removeOrgStructureImage() {
   revalidatePath("/en/about");
   revalidatePath("/km/about");
   revalidatePath("/admin/content/people");
+}
+
+export async function updateHomeAboutImage(formData: FormData) {
+  const actor = await requireContentEditor();
+  const image = formData.get("image");
+  if (!(image instanceof File) || image.size === 0) throw new Error("Choose an image to upload");
+  if (!image.type.startsWith("image/")) throw new Error("The homepage about image must be an image");
+
+  const value = await saveUploadedFile(image, "home-about");
+  await prisma.siteSetting.upsert({
+    where: { key: HOME_ABOUT_IMAGE_KEY },
+    update: { value },
+    create: { key: HOME_ABOUT_IMAGE_KEY, value },
+  });
+
+  await logContentChange(actor.id, "home_about_image.update", "SiteSetting", HOME_ABOUT_IMAGE_KEY);
+  revalidatePath("/en");
+  revalidatePath("/km");
+  revalidatePath("/admin/content/homepage");
+  redirect("/admin/content/homepage?saved=1");
+}
+
+export async function removeHomeAboutImage() {
+  const actor = await requireContentEditor();
+
+  await prisma.siteSetting.deleteMany({ where: { key: HOME_ABOUT_IMAGE_KEY } });
+
+  await logContentChange(actor.id, "home_about_image.delete", "SiteSetting", HOME_ABOUT_IMAGE_KEY);
+  revalidatePath("/en");
+  revalidatePath("/km");
+  revalidatePath("/admin/content/homepage");
 }
 
 export async function createMember(formData: FormData) {

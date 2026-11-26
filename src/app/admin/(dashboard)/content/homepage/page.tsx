@@ -7,7 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getCurrentUser, hasRole } from "@/lib/auth";
 import { ConfirmDeleteForm } from "@/components/admin/confirm-delete-form";
-import { updateImpactStats, createSlide, toggleSlideActive, deleteSlide } from "@/lib/actions/content-actions";
+import { getHomeAboutImageUrl } from "@/lib/site-settings";
+import {
+  updateImpactStats,
+  createSlide,
+  toggleSlideActive,
+  deleteSlide,
+  updateHomeAboutImage,
+  removeHomeAboutImage,
+} from "@/lib/actions/content-actions";
 
 const SLIDE_CATEGORIES = ["NEWS", "EVENT", "SPONSOR", "MEMBER"] as const;
 
@@ -15,9 +23,10 @@ export default async function AdminHomepagePage() {
   const currentUser = await getCurrentUser();
   if (!hasRole(currentUser, ["SUPER_ADMIN", "ADMIN"])) notFound();
 
-  const [stats, slides] = await Promise.all([
+  const [stats, slides, homeAboutImageUrl] = await Promise.all([
     prisma.impactStat.findMany(),
     prisma.slide.findMany({ orderBy: { sortOrder: "asc" } }),
+    getHomeAboutImageUrl(),
   ]);
 
   const statValue = (key: string) => stats.find((s) => s.key === key)?.value ?? 0;
@@ -118,6 +127,47 @@ export default async function AdminHomepagePage() {
               <p className="py-4 text-center text-sm text-brand-navy/50">No slides yet.</p>
             )}
           </ul>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>About JCI Phnom Penh Image</CardTitle>
+          <CardDescription>
+            Shown next to the &quot;About JCI Phnom Penh&quot; intro text on the homepage. A 4:3
+            portrait-ish photo works best — it&apos;s cropped to fill that shape.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {homeAboutImageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- admin preview of an uploaded file
+            <img
+              src={homeAboutImageUrl}
+              alt="Current homepage about image"
+              className="aspect-[4/3] w-full max-w-sm rounded-xl border border-border object-cover"
+            />
+          ) : (
+            <p className="rounded-xl border border-dashed border-border py-10 text-center text-sm text-brand-navy/50">
+              No image uploaded yet — the homepage shows a placeholder.
+            </p>
+          )}
+
+          <div className="flex flex-wrap items-center gap-3">
+            <form action={updateHomeAboutImage} encType="multipart/form-data" className="flex flex-wrap items-center gap-3">
+              <input name="image" type="file" accept="image/*" required className="text-sm" />
+              <Button type="submit" size="sm">
+                {homeAboutImageUrl ? "Replace Image" : "Upload Image"}
+              </Button>
+            </form>
+            {homeAboutImageUrl && (
+              <ConfirmDeleteForm
+                action={removeHomeAboutImage}
+                id="home-about-image"
+                label="Remove"
+                confirmMessage="Remove the homepage about image? It will fall back to a placeholder."
+              />
+            )}
+          </div>
         </CardContent>
       </Card>
 
