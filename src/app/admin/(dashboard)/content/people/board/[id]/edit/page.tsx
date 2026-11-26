@@ -15,6 +15,7 @@ export default async function EditBoardMemberPage({ params }: { params: Promise<
   if (!member) notFound();
 
   const title = parseLocalizedText(member.title);
+  const message = member.message ? parseLocalizedText(member.message) : null;
 
   return (
     <div className="max-w-xl space-y-6">
@@ -45,6 +46,20 @@ export default async function EditBoardMemberPage({ params }: { params: Promise<
             <label className="flex h-10 items-center gap-2 text-sm text-brand-navy/70 sm:col-span-2">
               Replace photo (optional)
               <input name="photo" type="file" accept="image/*" className="text-sm" />
+            </label>
+            <label className="grid gap-1.5 text-sm font-medium text-brand-navy sm:col-span-2">
+              Homepage message (optional)
+              <span className="text-xs font-normal text-brand-navy/60">
+                Shown as the quote in the &quot;Message From Our Local President&quot; section on the
+                homepage, only when this person sorts first. Leave empty to use the default welcome
+                message.
+              </span>
+              <textarea
+                name="messageEn"
+                defaultValue={message?.en ?? ""}
+                rows={4}
+                className="flex w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm font-normal text-brand-navy"
+              />
             </label>
             <div className="flex gap-2 sm:col-span-2">
               <Button type="submit" size="sm">Save Changes</Button>

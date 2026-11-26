@@ -13,6 +13,8 @@ import {
   removeOrgStructureImage,
   createMember,
   deleteMember,
+  createPastPresident,
+  deletePastPresident,
   createPartner,
   togglePartnerActive,
   deletePartner,
@@ -22,10 +24,11 @@ export default async function AdminPeoplePage() {
   const currentUser = await getCurrentUser();
   if (!hasRole(currentUser, ["SUPER_ADMIN", "ADMIN"])) notFound();
 
-  const [president, directoryMembers, orgStructureImageUrl, partners] = await Promise.all([
+  const [president, directoryMembers, orgStructureImageUrl, pastPresidents, partners] = await Promise.all([
     prisma.boardMember.findFirst({ orderBy: { sortOrder: "asc" } }),
     prisma.member.findMany({ orderBy: { name: "asc" } }),
     getOrgStructureImageUrl(),
+    prisma.pastPresident.findMany({ orderBy: { sortOrder: "asc" } }),
     prisma.partner.findMany({ orderBy: { sortOrder: "asc" } }),
   ]);
 
@@ -78,7 +81,10 @@ export default async function AdminPeoplePage() {
       <Card>
         <CardHeader>
           <CardTitle>Homepage Leader Message</CardTitle>
-          <CardDescription>The Local President shown with the leader message on the homepage.</CardDescription>
+          <CardDescription>
+            The Local President shown with the leader message on the homepage. Click Edit to change
+            the name, title, photo, or the quote itself.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {president ? (
@@ -211,6 +217,78 @@ export default async function AdminPeoplePage() {
             ))}
             {directoryMembers.length === 0 && (
               <p className="py-4 text-center text-sm text-brand-navy/50">No directory members yet.</p>
+            )}
+          </ul>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Past Presidents</CardTitle>
+          <CardDescription>
+            Photo wall shown on /about, directly above Partners &amp; Sponsors. Leave photo empty to
+            show a placeholder until a real photo is uploaded.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <form action={createPastPresident} encType="multipart/form-data" className="grid gap-3 sm:grid-cols-2">
+            <input
+              name="name"
+              placeholder="Name"
+              required
+              className="flex h-10 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm sm:col-span-2"
+            />
+            <input
+              name="year"
+              placeholder="Year (e.g. 2019 or 2019–2020)"
+              required
+              className="flex h-10 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm"
+            />
+            <input
+              name="sortOrder"
+              type="number"
+              placeholder="Sort order (oldest first)"
+              defaultValue={pastPresidents.length}
+              className="flex h-10 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm"
+            />
+            <label className="flex items-center gap-2 text-sm text-brand-navy/70 sm:col-span-2">
+              Photo (optional)
+              <input name="photo" type="file" accept="image/*" className="text-sm" />
+            </label>
+            <div className="sm:col-span-2">
+              <Button type="submit" size="sm">Add Past President</Button>
+            </div>
+          </form>
+
+          <ul className="space-y-2">
+            {pastPresidents.map((p) => (
+              <li key={p.id} className="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2 text-sm">
+                <div className="flex items-center gap-3">
+                  {p.photoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- admin preview of an uploaded file
+                    <img src={p.photoUrl} alt={p.name} className="h-10 w-10 rounded-full border border-border object-cover" />
+                  ) : (
+                    <div className="h-10 w-10 rounded-full border border-dashed border-border" />
+                  )}
+                  <div>
+                    <span className="font-medium text-brand-navy">{p.name}</span>
+                    <span className="ml-2 text-brand-navy/60">{p.year}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" asChild>
+                    <Link href={`/admin/content/people/past-presidents/${p.id}/edit`}>Edit</Link>
+                  </Button>
+                  <ConfirmDeleteForm
+                    action={deletePastPresident}
+                    id={p.id}
+                    confirmMessage={`Remove "${p.name}" from the Past Presidents wall?`}
+                  />
+                </div>
+              </li>
+            ))}
+            {pastPresidents.length === 0 && (
+              <p className="py-4 text-center text-sm text-brand-navy/50">No past presidents added yet.</p>
             )}
           </ul>
         </CardContent>

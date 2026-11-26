@@ -671,6 +671,7 @@ export async function updateBoardMember(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const titleEn = String(formData.get("titleEn") ?? "").trim();
   if (!name || !titleEn) throw new Error("Name and title are required");
+  const messageEn = String(formData.get("messageEn") ?? "").trim();
 
   const photo = formData.get("photo");
   const photoUrl =
@@ -682,6 +683,7 @@ export async function updateBoardMember(formData: FormData) {
       name,
       title: toJsonField({ en: titleEn, km: titleEn }),
       photoUrl,
+      message: messageEn ? toJsonField({ en: messageEn, km: messageEn }) : null,
     },
   });
 
@@ -842,6 +844,75 @@ export async function deletePartner(formData: FormData) {
   await prisma.partner.delete({ where: { id } });
 
   await logContentChange(actor.id, "partner.delete", "Partner", id);
+  revalidatePath("/en/about");
+  revalidatePath("/km/about");
+  revalidatePath("/admin/content/people");
+}
+
+// ---------------------------------------------------------------------------
+// Past Presidents — photo wall on /about, shown directly above Partners &
+// Sponsors. Same create/update/delete shape as Partners.
+// ---------------------------------------------------------------------------
+
+export async function createPastPresident(formData: FormData) {
+  const actor = await requireContentEditor();
+  const name = String(formData.get("name") ?? "").trim();
+  const year = String(formData.get("year") ?? "").trim();
+  if (!name || !year) throw new Error("Name and year are required");
+
+  const photo = formData.get("photo");
+  const photoUrl = photo instanceof File && photo.size > 0 ? await saveUploadedFile(photo, "past-presidents") : null;
+
+  const sortOrder = Number(formData.get("sortOrder") ?? 0) || 0;
+
+  const pastPresident = await prisma.pastPresident.create({
+    data: { name, year, photoUrl, sortOrder },
+  });
+
+  await logContentChange(actor.id, "past_president.create", "PastPresident", pastPresident.id);
+  revalidatePath("/en/about");
+  revalidatePath("/km/about");
+  revalidatePath("/admin/content/people");
+  redirect("/admin/content/people?saved=1");
+}
+
+export async function updatePastPresident(formData: FormData) {
+  const actor = await requireContentEditor();
+  const id = String(formData.get("id") ?? "");
+  const pastPresident = await prisma.pastPresident.findUnique({ where: { id } });
+  if (!pastPresident) throw new Error("Past president not found");
+
+  const name = String(formData.get("name") ?? "").trim();
+  const year = String(formData.get("year") ?? "").trim();
+  if (!name || !year) throw new Error("Name and year are required");
+
+  const photo = formData.get("photo");
+  const photoUrl =
+    photo instanceof File && photo.size > 0
+      ? await saveUploadedFile(photo, "past-presidents")
+      : pastPresident.photoUrl;
+
+  const sortOrder = Number(formData.get("sortOrder") ?? pastPresident.sortOrder) || 0;
+
+  await prisma.pastPresident.update({
+    where: { id },
+    data: { name, year, photoUrl, sortOrder },
+  });
+
+  await logContentChange(actor.id, "past_president.update", "PastPresident", id);
+  revalidatePath("/en/about");
+  revalidatePath("/km/about");
+  revalidatePath("/admin/content/people");
+  redirect("/admin/content/people?saved=1");
+}
+
+export async function deletePastPresident(formData: FormData) {
+  const actor = await requireContentEditor();
+  const id = String(formData.get("id") ?? "");
+
+  await prisma.pastPresident.delete({ where: { id } });
+
+  await logContentChange(actor.id, "past_president.delete", "PastPresident", id);
   revalidatePath("/en/about");
   revalidatePath("/km/about");
   revalidatePath("/admin/content/people");

@@ -30,14 +30,6 @@ const ROW_TEXT_DARK = new Set<ProjectPillar>([
 // The hover panel stays compact — anything past this is reachable via "Show more".
 const MAX_PROJECTS_PER_VALUE = 3;
 
-// No confirmed historical record yet — add real { year, name, photoUrl } entries
-// here (oldest first; one per year since the 2010 founding) once we have the
-// actual list. The section shows an honest "coming soon" state until then
-// rather than guessing at names. photoUrl is optional — leave it unset and
-// MediaTile renders a nice placeholder until a real photo is uploaded to
-// /public/past-presidents.
-const PAST_PRESIDENTS: { year: string; name: string; photoUrl?: string }[] = [];
-
 // The organization structure image is editable via the admin CMS, so this
 // page must re-query per request rather than being baked in at build time.
 export const dynamic = "force-dynamic";
@@ -51,12 +43,13 @@ export default async function AboutPage({
   setRequestLocale(locale);
   const t = await getTranslations("aboutPage");
 
-  const [orgStructureImageUrl, projects, partners] = await Promise.all([
+  const [orgStructureImageUrl, projects, pastPresidents, partners] = await Promise.all([
     getOrgStructureImageUrl(),
     prisma.project.findMany({
       select: { slug: true, title: true, pillar: true },
       orderBy: { createdAt: "desc" },
     }),
+    prisma.pastPresident.findMany({ orderBy: { sortOrder: "asc" } }),
     prisma.partner.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
   ]);
 
@@ -244,14 +237,14 @@ export default async function AboutPage({
             <p className="mt-2 max-w-2xl text-brand-navy/60">{t("pastPresidentsSubtitle")}</p>
           </Reveal>
 
-          {PAST_PRESIDENTS.length === 0 ? (
+          {pastPresidents.length === 0 ? (
             <p className="mt-10 rounded-2xl border border-dashed border-border py-12 text-center text-sm text-brand-navy/50">
               {t("pastPresidentsEmpty")}
             </p>
           ) : (
             <div className="mt-10 grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-              {[...PAST_PRESIDENTS].reverse().map((p) => (
-                <div key={p.year} className="group flex flex-col items-center text-center">
+              {[...pastPresidents].reverse().map((p) => (
+                <div key={p.id} className="group flex flex-col items-center text-center">
                   <MediaTile
                     src={p.photoUrl}
                     alt={p.name}

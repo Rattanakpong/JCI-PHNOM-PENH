@@ -32,6 +32,13 @@ const nextConfig = {
       { protocol: "https", hostname: "*.supabase.co" },
     ],
   },
+  experimental: {
+    // Server actions default to a 1MB request body, far below
+    // MAX_UPLOAD_MB in src/lib/upload-limits.ts — every admin image/PDF
+    // upload form posts straight to a server action, so this must stay in
+    // sync with that constant or uploads over 1MB fail silently.
+    serverActions: { bodySizeLimit: "20mb" },
+  },
   async headers() {
     return [
       {

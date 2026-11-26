@@ -257,8 +257,27 @@ model BoardMember {
   photoUrl  String?
   committee String? // null = Executive Board
   sortOrder Int     @default(0)
+  // Homepage "message from our Local President" quote — only read from
+  // whichever BoardMember sorts first. JSON string: { "en": "...", "km": "..." };
+  // null falls back to the default copy in src/messages/*.json.
+  message   String?
 
   @@map("board_members")
+}
+
+// Photo wall of past Local Presidents shown on /about, directly above
+// Partners & Sponsors. sortOrder ascending = oldest first; the public page
+// reverses it to show the most recent president first.
+model PastPresident {
+  id        String   @id @default(uuid())
+  year      String // e.g. "2010" or "2019–2020"
+  name      String
+  photoUrl  String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("past_presidents")
 }
 
 // Logo wall shown on /about, directly below Past Presidents.

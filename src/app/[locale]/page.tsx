@@ -146,12 +146,14 @@ type PresidentSummary = {
   name: string;
   title: string;
   photoUrl: string | null;
+  message: string | null;
 } | null;
 
 function LeaderMessageSection({ president, locale }: { president: PresidentSummary; locale: string }) {
   const t = useTranslations("leaderMessage");
   if (!president) return null;
   const presidentTitle = localize(parseLocalizedText(president.title), locale);
+  const quote = president.message ? localize(parseLocalizedText(president.message), locale) : t("quote");
 
   return (
     <section className="section-y border-t border-border bg-brand-navy text-white">
@@ -168,7 +170,7 @@ function LeaderMessageSection({ president, locale }: { president: PresidentSumma
             {t("label")}
           </p>
           <p className="mt-6 text-2xl italic leading-relaxed text-white/90 sm:text-3xl">
-            &ldquo;{t("quote")}&rdquo;
+            &ldquo;{quote}&rdquo;
           </p>
           <div className="mt-8">
             <p className="text-lg font-bold text-white">{president.name}</p>
