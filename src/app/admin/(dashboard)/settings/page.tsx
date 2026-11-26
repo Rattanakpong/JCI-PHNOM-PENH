@@ -16,7 +16,7 @@ const FIELDS: Array<{ key: string; label: string; type?: string; span2?: boolean
 
 export default async function AdminSettingsPage() {
   const currentUser = await getCurrentUser();
-  if (!hasRole(currentUser, ["SUPER_ADMIN", "BOARD_ADMIN"])) notFound();
+  if (!hasRole(currentUser, ["SUPER_ADMIN", "ADMIN"])) notFound();
 
   const settings = await getSiteSettings();
 

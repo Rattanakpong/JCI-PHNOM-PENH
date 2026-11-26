@@ -7,7 +7,7 @@ import { updateMembershipStatus, updateContactStatus } from "@/lib/actions/inqui
 
 export default async function AdminInquiriesPage() {
   const currentUser = await getCurrentUser();
-  if (!hasRole(currentUser, ["SUPER_ADMIN", "BOARD_ADMIN"])) notFound();
+  if (!hasRole(currentUser, ["SUPER_ADMIN", "ADMIN"])) notFound();
 
   const [applications, contacts] = await Promise.all([
     prisma.membershipApplication.findMany({ orderBy: { createdAt: "desc" } }),

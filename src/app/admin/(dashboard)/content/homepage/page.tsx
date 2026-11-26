@@ -13,7 +13,7 @@ const SLIDE_CATEGORIES = ["NEWS", "EVENT", "SPONSOR", "MEMBER"] as const;
 
 export default async function AdminHomepagePage() {
   const currentUser = await getCurrentUser();
-  if (!hasRole(currentUser, ["SUPER_ADMIN", "BOARD_ADMIN"])) notFound();
+  if (!hasRole(currentUser, ["SUPER_ADMIN", "ADMIN"])) notFound();
 
   const [stats, slides] = await Promise.all([
     prisma.impactStat.findMany(),

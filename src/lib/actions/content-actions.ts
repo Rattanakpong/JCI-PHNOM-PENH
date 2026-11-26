@@ -752,3 +752,97 @@ export async function deleteMember(formData: FormData) {
   revalidatePath("/km/members");
   revalidatePath("/admin/content/people");
 }
+
+// ---------------------------------------------------------------------------
+// Partners & sponsors — logo wall on /about, shown directly below Past
+// Presidents. Same create/update/delete/toggle shape as the homepage slides.
+// ---------------------------------------------------------------------------
+
+export async function createPartner(formData: FormData) {
+  const actor = await requireContentEditor();
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) throw new Error("Name is required");
+
+  const logo = formData.get("logo");
+  if (!(logo instanceof File) || logo.size === 0) throw new Error("Logo image is required");
+  const logoUrl = await saveUploadedFile(logo, "partners");
+
+  const websiteUrl = String(formData.get("websiteUrl") ?? "").trim() || null;
+  const sortOrder = Number(formData.get("sortOrder") ?? 0) || 0;
+
+  const partner = await prisma.partner.create({
+    data: {
+      name,
+      logoUrl,
+      websiteUrl,
+      sortOrder,
+      isActive: !!formData.get("isActive"),
+    },
+  });
+
+  await logContentChange(actor.id, "partner.create", "Partner", partner.id);
+  revalidatePath("/en/about");
+  revalidatePath("/km/about");
+  revalidatePath("/admin/content/people");
+  redirect("/admin/content/people?saved=1");
+}
+
+export async function updatePartner(formData: FormData) {
+  const actor = await requireContentEditor();
+  const id = String(formData.get("id") ?? "");
+  const partner = await prisma.partner.findUnique({ where: { id } });
+  if (!partner) throw new Error("Partner not found");
+
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) throw new Error("Name is required");
+
+  const logo = formData.get("logo");
+  const logoUrl =
+    logo instanceof File && logo.size > 0 ? await saveUploadedFile(logo, "partners") : partner.logoUrl;
+
+  const websiteUrl = String(formData.get("websiteUrl") ?? "").trim() || null;
+  const sortOrder = Number(formData.get("sortOrder") ?? partner.sortOrder) || 0;
+
+  await prisma.partner.update({
+    where: { id },
+    data: {
+      name,
+      logoUrl,
+      websiteUrl,
+      sortOrder,
+      isActive: !!formData.get("isActive"),
+    },
+  });
+
+  await logContentChange(actor.id, "partner.update", "Partner", id);
+  revalidatePath("/en/about");
+  revalidatePath("/km/about");
+  revalidatePath("/admin/content/people");
+  redirect("/admin/content/people?saved=1");
+}
+
+export async function togglePartnerActive(formData: FormData) {
+  const actor = await requireContentEditor();
+  const id = String(formData.get("id") ?? "");
+  const partner = await prisma.partner.findUnique({ where: { id } });
+  if (!partner) throw new Error("Partner not found");
+
+  await prisma.partner.update({ where: { id }, data: { isActive: !partner.isActive } });
+
+  await logContentChange(actor.id, "partner.toggle_active", "Partner", id);
+  revalidatePath("/en/about");
+  revalidatePath("/km/about");
+  revalidatePath("/admin/content/people");
+}
+
+export async function deletePartner(formData: FormData) {
+  const actor = await requireContentEditor();
+  const id = String(formData.get("id") ?? "");
+
+  await prisma.partner.delete({ where: { id } });
+
+  await logContentChange(actor.id, "partner.delete", "Partner", id);
+  revalidatePath("/en/about");
+  revalidatePath("/km/about");
+  revalidatePath("/admin/content/people");
+}

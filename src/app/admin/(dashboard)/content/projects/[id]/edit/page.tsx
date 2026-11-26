@@ -16,7 +16,7 @@ const PROJECT_PILLARS = [
 
 export default async function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const currentUser = await getCurrentUser();
-  if (!hasRole(currentUser, ["SUPER_ADMIN", "BOARD_ADMIN"])) notFound();
+  if (!hasRole(currentUser, ["SUPER_ADMIN", "ADMIN"])) notFound();
 
   const { id } = await params;
   const project = await prisma.project.findUnique({ where: { id } });

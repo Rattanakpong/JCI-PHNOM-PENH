@@ -21,7 +21,7 @@ datasource db {
 }
 
 // ---------------------------------------------------------------------------
-// RBAC — Role is "SUPER_ADMIN" | "BOARD_ADMIN" | "EVENT_ORGANIZER" (src/lib/enums.ts)
+// RBAC — Role is "SUPER_ADMIN" | "ADMIN" (src/lib/enums.ts)
 // ---------------------------------------------------------------------------
 
 model User {
@@ -29,7 +29,18 @@ model User {
   email        String   @unique
   name         String
   passwordHash String? // local email+password auth for dev; unused once Supabase Auth is wired in
-  role         String   @default("EVENT_ORGANIZER")
+  // Set by a Super Admin via "Generate Setup/Reset Link" (src/lib/actions/user-actions.ts)
+  // instead of anyone but the account owner ever typing their password — null
+  // once the link has been used. passwordHash stays null for a brand-new user
+  // until they set their own password through this flow.
+  passwordResetToken      String?   @unique
+  passwordResetExpiresAt  DateTime?
+  // Basic brute-force lockout on /api/auth/login — resets on a successful
+  // login. Not a substitute for rate limiting at the network edge, but
+  // removes the "script a password list" attack with zero new infra.
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+  role         String   @default("ADMIN")
   avatarUrl    String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -248,6 +259,20 @@ model BoardMember {
   sortOrder Int     @default(0)
 
   @@map("board_members")
+}
+
+// Logo wall shown on /about, directly below Past Presidents.
+model Partner {
+  id         String   @id @default(uuid())
+  name       String
+  logoUrl    String
+  websiteUrl String?
+  sortOrder  Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("partners")
 }
 
 // Slide.category is "NEWS" | "EVENT" | "SPONSOR" | "MEMBER" (src/lib/enums.ts)

@@ -7,9 +7,9 @@ export default function AdminGuidePage() {
       </p>
       <ol className="mt-4 list-decimal space-y-2 pl-5 text-brand-navy/80">
         <li>Ask the outgoing Super Admin to add you under Users &amp; Roles with the correct role.</li>
-        <li>Event Organizers: create the event under Events, add ticket tiers, then paste the private Telegram link before publishing.</li>
+        <li>Create events under Events, add ticket tiers, then paste the private Telegram link before publishing.</li>
         <li>
-          Board Admins: update Homepage (slideshow + hero stats), News, Projects, and People
+          Update Homepage (slideshow + hero stats), News, Projects, and People
           (board roster + members directory) under Content.
         </li>
         <li>Keep the Contact page accurate under Site Settings — email, phone, address, map link, and social links.</li>

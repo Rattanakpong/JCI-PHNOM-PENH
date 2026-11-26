@@ -18,7 +18,7 @@ function toDatetimeLocalValue(date: Date): string {
 
 export default async function EditEventPage({ params }: { params: Promise<{ id: string }> }) {
   const currentUser = await getCurrentUser();
-  if (!hasRole(currentUser, ["SUPER_ADMIN", "EVENT_ORGANIZER"])) notFound();
+  if (!hasRole(currentUser, ["SUPER_ADMIN", "ADMIN"])) notFound();
 
   const { id } = await params;
   const event = await prisma.event.findUnique({

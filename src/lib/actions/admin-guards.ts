@@ -7,13 +7,13 @@ import { getCurrentUser, hasRole } from "@/lib/auth";
 
 export async function requireContentEditor() {
   const user = await getCurrentUser();
-  if (!hasRole(user, ["SUPER_ADMIN", "BOARD_ADMIN"])) throw new Error("Not authorized");
+  if (!hasRole(user, ["SUPER_ADMIN", "ADMIN"])) throw new Error("Not authorized");
   return user!;
 }
 
 export async function requireEventOrganizer() {
   const user = await getCurrentUser();
-  if (!hasRole(user, ["SUPER_ADMIN", "EVENT_ORGANIZER"])) throw new Error("Not authorized");
+  if (!hasRole(user, ["SUPER_ADMIN", "ADMIN"])) throw new Error("Not authorized");
   return user!;
 }
 

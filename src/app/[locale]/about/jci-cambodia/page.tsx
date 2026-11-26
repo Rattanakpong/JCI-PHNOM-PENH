@@ -222,7 +222,9 @@ export default async function AboutJciCambodiaPage({
               const isClickable = isHome || !!website;
 
               const cardClassName = cn(
-                "group relative flex h-full w-full flex-col items-center gap-4 overflow-hidden rounded-2xl border bg-surface p-4 text-center transition-all duration-300 sm:p-6",
+                // No overflow-hidden here: the "This is us" badge below sits
+                // just above the top edge (-top-2.5) and would get clipped.
+                "group relative flex h-full w-full flex-col items-center gap-4 rounded-2xl border bg-surface p-4 text-center transition-all duration-300 sm:p-6",
                 isHome ? "border-brand-blue/50 shadow-card ring-1 ring-brand-blue/30" : "border-border shadow-card",
                 isClickable && "hover:-translate-y-2 hover:border-brand-blue/50 hover:shadow-card-hover"
               );

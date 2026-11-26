@@ -9,7 +9,7 @@ import { addExportSheet, exportResponse, readExportFormat } from "@/lib/spreadsh
 // the admin list. Localized fields are exported in English.
 export async function GET(request: Request) {
   const user = await getCurrentUser();
-  if (!hasRole(user, ["SUPER_ADMIN", "BOARD_ADMIN"])) {
+  if (!hasRole(user, ["SUPER_ADMIN", "ADMIN"])) {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 

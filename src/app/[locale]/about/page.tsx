@@ -51,12 +51,13 @@ export default async function AboutPage({
   setRequestLocale(locale);
   const t = await getTranslations("aboutPage");
 
-  const [orgStructureImageUrl, projects] = await Promise.all([
+  const [orgStructureImageUrl, projects, partners] = await Promise.all([
     getOrgStructureImageUrl(),
     prisma.project.findMany({
       select: { slug: true, title: true, pillar: true },
       orderBy: { createdAt: "desc" },
     }),
+    prisma.partner.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
   ]);
 
   return (
@@ -264,6 +265,49 @@ export default async function AboutPage({
                   <p className="mt-1 text-sm font-bold leading-snug text-brand-navy">{p.name}</p>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="section-y border-t border-border bg-surface">
+        <div className="section">
+          <Reveal>
+            <h2 className="text-3xl font-bold text-brand-navy">{t("partnersSponsorsTitle")}</h2>
+            <p className="mt-2 max-w-2xl text-brand-navy/60">{t("partnersSponsorsSubtitle")}</p>
+          </Reveal>
+
+          {partners.length === 0 ? (
+            <p className="mt-10 rounded-2xl border border-dashed border-border py-12 text-center text-sm text-brand-navy/50">
+              {t("partnersSponsorsEmpty")}
+            </p>
+          ) : (
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-6">
+              {partners.map((partner, i) => {
+                const logo = (
+                  // eslint-disable-next-line @next/next/no-img-element -- admin-uploaded logo, not worth next/image's remote-pattern config
+                  <img
+                    src={partner.logoUrl}
+                    alt={partner.name}
+                    className="h-16 w-auto max-w-[9rem] object-contain transition-transform duration-200 group-hover:scale-105 sm:h-20 sm:max-w-[11rem]"
+                  />
+                );
+                return (
+                  <Reveal
+                    key={partner.id}
+                    delay={i * 90}
+                    className="group flex h-24 w-40 items-center justify-center rounded-2xl border border-border bg-white p-4 shadow-card transition-all duration-300 hover:-translate-y-1 hover:border-brand-blue/50 hover:shadow-card-hover sm:h-28 sm:w-48"
+                  >
+                    {partner.websiteUrl ? (
+                      <a href={partner.websiteUrl} target="_blank" rel="noopener noreferrer" aria-label={partner.name}>
+                        {logo}
+                      </a>
+                    ) : (
+                      logo
+                    )}
+                  </Reveal>
+                );
+              })}
             </div>
           )}
         </div>

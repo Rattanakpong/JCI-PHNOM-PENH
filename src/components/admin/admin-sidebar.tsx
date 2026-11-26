@@ -11,6 +11,7 @@ import {
   Settings,
   ShieldCheck,
   ClipboardList,
+  UserCog,
 } from "lucide-react";
 import { hasRole, type CurrentUser } from "@/lib/auth";
 import type { Role } from "@/lib/enums";
@@ -24,42 +25,43 @@ const NAV_GROUPS: Array<{ section: string; items: NavItem[] }> = [
   {
     section: "Overview",
     items: [
-      { href: "/admin", label: "Dashboard", icon: LayoutDashboard, roles: ["SUPER_ADMIN", "BOARD_ADMIN", "EVENT_ORGANIZER"] },
+      { href: "/admin", label: "Dashboard", icon: LayoutDashboard, roles: ["SUPER_ADMIN", "ADMIN"] },
     ],
   },
   {
     section: "Events",
     items: [
-      { href: "/admin/events", label: "Events", icon: CalendarDays, roles: ["SUPER_ADMIN", "EVENT_ORGANIZER"] },
-      { href: "/admin/events/registrations", label: "Registrations & Payments", icon: Ticket, roles: ["SUPER_ADMIN", "EVENT_ORGANIZER"] },
+      { href: "/admin/events", label: "Events", icon: CalendarDays, roles: ["SUPER_ADMIN", "ADMIN"] },
+      { href: "/admin/events/registrations", label: "Registrations & Payments", icon: Ticket, roles: ["SUPER_ADMIN", "ADMIN"] },
     ],
   },
   {
     section: "Content",
     items: [
-      { href: "/admin/content/homepage", label: "Homepage", icon: ImageIcon, roles: ["SUPER_ADMIN", "BOARD_ADMIN"] },
-      { href: "/admin/content/news", label: "News", icon: Newspaper, roles: ["SUPER_ADMIN", "BOARD_ADMIN"] },
-      { href: "/admin/content/projects", label: "Projects", icon: FolderKanban, roles: ["SUPER_ADMIN", "BOARD_ADMIN"] },
-      { href: "/admin/content/people", label: "People", icon: UsersRound, roles: ["SUPER_ADMIN", "BOARD_ADMIN"] },
+      { href: "/admin/content/homepage", label: "Homepage", icon: ImageIcon, roles: ["SUPER_ADMIN", "ADMIN"] },
+      { href: "/admin/content/news", label: "News", icon: Newspaper, roles: ["SUPER_ADMIN", "ADMIN"] },
+      { href: "/admin/content/projects", label: "Projects", icon: FolderKanban, roles: ["SUPER_ADMIN", "ADMIN"] },
+      { href: "/admin/content/people", label: "People", icon: UsersRound, roles: ["SUPER_ADMIN", "ADMIN"] },
     ],
   },
   {
     section: "Engagement",
     items: [
-      { href: "/admin/inquiries", label: "Inquiries", icon: Inbox, roles: ["SUPER_ADMIN", "BOARD_ADMIN"] },
+      { href: "/admin/inquiries", label: "Inquiries", icon: Inbox, roles: ["SUPER_ADMIN", "ADMIN"] },
     ],
   },
   {
     section: "Settings",
     items: [
-      { href: "/admin/settings", label: "Site Settings", icon: Settings, roles: ["SUPER_ADMIN", "BOARD_ADMIN"] },
+      { href: "/admin/settings", label: "Site Settings", icon: Settings, roles: ["SUPER_ADMIN", "ADMIN"] },
     ],
   },
   {
     section: "Administration",
     items: [
+      { href: "/admin/users", label: "Users & Roles", icon: UserCog, roles: ["SUPER_ADMIN"] },
       { href: "/admin/audit-log", label: "Audit Log", icon: ShieldCheck, roles: ["SUPER_ADMIN"] },
-      { href: "/admin/guide", label: "Admin Operation Guide", icon: ClipboardList, roles: ["SUPER_ADMIN", "BOARD_ADMIN", "EVENT_ORGANIZER"] },
+      { href: "/admin/guide", label: "Admin Operation Guide", icon: ClipboardList, roles: ["SUPER_ADMIN", "ADMIN"] },
     ],
   },
 ];

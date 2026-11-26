@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("dara@jcipp.org");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -76,13 +76,6 @@ export default function AdminLoginPage() {
               Sign In
             </Button>
           </form>
-
-          <div className="mt-6 rounded-xl bg-muted p-3 text-xs text-brand-navy/60">
-            <p className="mb-1 font-semibold text-brand-navy">Demo accounts (password: demo1234)</p>
-            <p>dara@jcipp.org — Super Admin</p>
-            <p>sopheak@jcipp.org — Board Admin</p>
-            <p>lina@jcipp.org — Event Organizer</p>
-          </div>
         </CardContent>
       </Card>
     </div>

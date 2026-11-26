@@ -6,7 +6,7 @@ import { getCurrentUser, hasRole } from "@/lib/auth";
 
 async function requireInquiryManager() {
   const user = await getCurrentUser();
-  if (!hasRole(user, ["SUPER_ADMIN", "BOARD_ADMIN"])) throw new Error("Not authorized");
+  if (!hasRole(user, ["SUPER_ADMIN", "ADMIN"])) throw new Error("Not authorized");
   return user!;
 }
 

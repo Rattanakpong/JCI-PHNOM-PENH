@@ -10,7 +10,7 @@ import { NewsTemplateFields } from "@/components/admin/news-template-fields";
 
 export default async function EditNewsPostPage({ params }: { params: Promise<{ id: string }> }) {
   const currentUser = await getCurrentUser();
-  if (!hasRole(currentUser, ["SUPER_ADMIN", "BOARD_ADMIN"])) notFound();
+  if (!hasRole(currentUser, ["SUPER_ADMIN", "ADMIN"])) notFound();
 
   const { id } = await params;
   const post = await prisma.newsPost.findUnique({ where: { id } });

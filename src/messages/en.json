@@ -269,7 +269,10 @@
     "structureViewFull": "Open full size",
     "pastPresidentsTitle": "Past Presidents",
     "pastPresidentsSubtitle": "Leaders who have guided JCI Phnom Penh since our founding.",
-    "pastPresidentsEmpty": "Our past presidents list is being compiled — check back soon."
+    "pastPresidentsEmpty": "Our past presidents list is being compiled — check back soon.",
+    "partnersSponsorsTitle": "Our Partners & Sponsors",
+    "partnersSponsorsSubtitle": "Organizations and businesses that support our mission and projects.",
+    "partnersSponsorsEmpty": "Our partners & sponsors list is being compiled — check back soon."
   },
   "aboutCambodiaPage": {
     "title": "JCI Cambodia",

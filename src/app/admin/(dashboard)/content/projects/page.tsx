@@ -27,7 +27,7 @@ const PROJECT_PILLARS = [
 
 export default async function AdminProjectsPage() {
   const currentUser = await getCurrentUser();
-  if (!hasRole(currentUser, ["SUPER_ADMIN", "BOARD_ADMIN"])) notFound();
+  if (!hasRole(currentUser, ["SUPER_ADMIN", "ADMIN"])) notFound();
 
   const projects = await prisma.project.findMany({
     orderBy: { createdAt: "desc" },

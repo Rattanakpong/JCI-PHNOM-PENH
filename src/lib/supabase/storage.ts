@@ -4,7 +4,7 @@ const BUCKET = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET ?? "jci-media";
 
 // Uploads a payment screenshot to a private-by-default bucket and returns
 // its public URL. Pair this with a Storage RLS policy that only lets
-// Super/Board/Event Organizer roles read the `payment-proofs/` prefix.
+// Super Admin/Admin roles read the `payment-proofs/` prefix.
 export async function uploadPaymentProof(file: File, registrationId: string) {
   const supabase = createSupabaseBrowserClient();
   const path = `payment-proofs/${registrationId}/${Date.now()}-${file.name}`;

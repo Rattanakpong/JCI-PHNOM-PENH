@@ -5,8 +5,7 @@
 
 export const Role = {
   SUPER_ADMIN: "SUPER_ADMIN",
-  BOARD_ADMIN: "BOARD_ADMIN",
-  EVENT_ORGANIZER: "EVENT_ORGANIZER",
+  ADMIN: "ADMIN",
 } as const;
 export type Role = (typeof Role)[keyof typeof Role];
 

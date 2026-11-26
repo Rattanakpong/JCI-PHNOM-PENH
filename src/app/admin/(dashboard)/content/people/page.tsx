@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { parseLocalizedText } from "@/lib/json-field";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { getCurrentUser, hasRole } from "@/lib/auth";
 import { ConfirmDeleteForm } from "@/components/admin/confirm-delete-form";
 import { getOrgStructureImageUrl } from "@/lib/site-settings";
@@ -12,16 +13,20 @@ import {
   removeOrgStructureImage,
   createMember,
   deleteMember,
+  createPartner,
+  togglePartnerActive,
+  deletePartner,
 } from "@/lib/actions/content-actions";
 
 export default async function AdminPeoplePage() {
   const currentUser = await getCurrentUser();
-  if (!hasRole(currentUser, ["SUPER_ADMIN", "BOARD_ADMIN"])) notFound();
+  if (!hasRole(currentUser, ["SUPER_ADMIN", "ADMIN"])) notFound();
 
-  const [president, directoryMembers, orgStructureImageUrl] = await Promise.all([
+  const [president, directoryMembers, orgStructureImageUrl, partners] = await Promise.all([
     prisma.boardMember.findFirst({ orderBy: { sortOrder: "asc" } }),
     prisma.member.findMany({ orderBy: { name: "asc" } }),
     getOrgStructureImageUrl(),
+    prisma.partner.findMany({ orderBy: { sortOrder: "asc" } }),
   ]);
 
   return (
@@ -206,6 +211,83 @@ export default async function AdminPeoplePage() {
             ))}
             {directoryMembers.length === 0 && (
               <p className="py-4 text-center text-sm text-brand-navy/50">No directory members yet.</p>
+            )}
+          </ul>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Partners & Sponsors</CardTitle>
+          <CardDescription>
+            Logo wall shown on /about directly below Past Presidents. Hidden partners stay saved but
+            don&apos;t appear on the public page.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <form action={createPartner} encType="multipart/form-data" className="grid gap-3 sm:grid-cols-2">
+            <input
+              name="name"
+              placeholder="Partner / sponsor name"
+              required
+              className="flex h-10 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm sm:col-span-2"
+            />
+            <input
+              name="websiteUrl"
+              placeholder="Website link (optional)"
+              className="flex h-10 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm sm:col-span-2"
+            />
+            <input
+              name="sortOrder"
+              type="number"
+              placeholder="Sort order"
+              defaultValue={partners.length}
+              className="flex h-10 w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm"
+            />
+            <label className="flex items-center gap-2 text-sm text-brand-navy/70">
+              Logo
+              <input name="logo" type="file" accept="image/*" required className="text-sm" />
+            </label>
+            <label className="flex items-center gap-2 text-sm text-brand-navy/70">
+              <input type="checkbox" name="isActive" defaultChecked />
+              Active
+            </label>
+            <div className="sm:col-span-2">
+              <Button type="submit" size="sm">Add Partner</Button>
+            </div>
+          </form>
+
+          <ul className="space-y-2">
+            {partners.map((partner) => (
+              <li key={partner.id} className="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2 text-sm">
+                <div className="flex items-center gap-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- admin preview of an uploaded file */}
+                  <img src={partner.logoUrl} alt={partner.name} className="h-10 w-10 rounded-lg border border-border object-contain" />
+                  <span className="font-medium text-brand-navy">{partner.name}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant={partner.isActive ? "success" : "outline"}>
+                    {partner.isActive ? "Active" : "Hidden"}
+                  </Badge>
+                  <form action={togglePartnerActive}>
+                    <input type="hidden" name="id" value={partner.id} />
+                    <Button type="submit" size="sm" variant="outline">
+                      {partner.isActive ? "Hide" : "Show"}
+                    </Button>
+                  </form>
+                  <Button size="sm" variant="outline" asChild>
+                    <Link href={`/admin/content/people/partners/${partner.id}/edit`}>Edit</Link>
+                  </Button>
+                  <ConfirmDeleteForm
+                    action={deletePartner}
+                    id={partner.id}
+                    confirmMessage={`Delete "${partner.name}" from the partners & sponsors list? This cannot be undone.`}
+                  />
+                </div>
+              </li>
+            ))}
+            {partners.length === 0 && (
+              <p className="py-4 text-center text-sm text-brand-navy/50">No partners or sponsors yet.</p>
             )}
           </ul>
         </CardContent>

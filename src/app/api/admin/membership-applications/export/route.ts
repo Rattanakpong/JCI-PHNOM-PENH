@@ -14,7 +14,7 @@ function humanize(value: string) {
 
 export async function GET(request: Request) {
   const user = await getCurrentUser();
-  if (!hasRole(user, ["SUPER_ADMIN", "BOARD_ADMIN"])) {
+  if (!hasRole(user, ["SUPER_ADMIN", "ADMIN"])) {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 

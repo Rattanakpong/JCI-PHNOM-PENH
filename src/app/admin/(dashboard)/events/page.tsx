@@ -10,7 +10,7 @@ import { deleteEvent, toggleEventPublished } from "@/lib/actions/event-actions";
 
 export default async function AdminEventsPage() {
   const currentUser = await getCurrentUser();
-  if (!hasRole(currentUser, ["SUPER_ADMIN", "EVENT_ORGANIZER"])) notFound();
+  if (!hasRole(currentUser, ["SUPER_ADMIN", "ADMIN"])) notFound();
 
   const events = await prisma.event.findMany({
     orderBy: { startAt: "desc" },

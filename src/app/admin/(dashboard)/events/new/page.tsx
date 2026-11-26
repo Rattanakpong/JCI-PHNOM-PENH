@@ -7,7 +7,7 @@ import { EventTemplateFields } from "@/components/admin/event-template-fields";
 
 export default async function NewEventPage() {
   const currentUser = await getCurrentUser();
-  if (!hasRole(currentUser, ["SUPER_ADMIN", "EVENT_ORGANIZER"])) notFound();
+  if (!hasRole(currentUser, ["SUPER_ADMIN", "ADMIN"])) notFound();
 
   return (
     <div className="space-y-6">

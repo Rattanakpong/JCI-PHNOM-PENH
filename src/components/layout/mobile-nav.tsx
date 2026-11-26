@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { Link, usePathname } from "@/i18n/navigation";
-import { LanguageSwitcher } from "@/components/language-switcher";
 import { Button } from "@/components/ui/button";
 
 export function MobileNav({
@@ -51,10 +50,6 @@ export function MobileNav({
               </Link>
             ))}
           </nav>
-
-          <div className="section flex border-t border-border py-4">
-            <LanguageSwitcher />
-          </div>
         </div>
       )}
     </div>

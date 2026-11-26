@@ -18,7 +18,7 @@ import {
 
 export default async function AdminNewsPage() {
   const currentUser = await getCurrentUser();
-  if (!hasRole(currentUser, ["SUPER_ADMIN", "BOARD_ADMIN"])) notFound();
+  if (!hasRole(currentUser, ["SUPER_ADMIN", "ADMIN"])) notFound();
 
   const posts = await prisma.newsPost.findMany({
     orderBy: { createdAt: "desc" },

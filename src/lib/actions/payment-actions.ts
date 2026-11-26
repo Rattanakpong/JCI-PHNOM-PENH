@@ -7,7 +7,7 @@ import { PaymentStatus, RegistrationStatus } from "@/lib/enums";
 
 export async function verifyPayment(registrationId: string, approve: boolean) {
   const user = await getCurrentUser();
-  if (!hasRole(user, ["SUPER_ADMIN", "EVENT_ORGANIZER"])) {
+  if (!hasRole(user, ["SUPER_ADMIN", "ADMIN"])) {
     throw new Error("Not authorized");
   }
 

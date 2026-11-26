@@ -8,7 +8,7 @@ import { updateMember } from "@/lib/actions/content-actions";
 
 export default async function EditMemberPage({ params }: { params: Promise<{ id: string }> }) {
   const currentUser = await getCurrentUser();
-  if (!hasRole(currentUser, ["SUPER_ADMIN", "BOARD_ADMIN"])) notFound();
+  if (!hasRole(currentUser, ["SUPER_ADMIN", "ADMIN"])) notFound();
 
   const { id } = await params;
   const member = await prisma.member.findUnique({ where: { id } });

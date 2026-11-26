@@ -15,7 +15,7 @@ const STATUS_VARIANT: Record<string, "success" | "warning" | "outline" | "destru
 
 export default async function AdminRegistrationsPage() {
   const currentUser = await getCurrentUser();
-  if (!hasRole(currentUser, ["SUPER_ADMIN", "EVENT_ORGANIZER"])) notFound();
+  if (!hasRole(currentUser, ["SUPER_ADMIN", "ADMIN"])) notFound();
 
   const registrations = await prisma.registration.findMany({
     include: { event: true, ticketTier: true, payment: true },

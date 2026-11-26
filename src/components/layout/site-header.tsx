@@ -3,7 +3,6 @@ import path from "path";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { LanguageSwitcher } from "@/components/language-switcher";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { NavDropdown } from "@/components/layout/nav-dropdown";
 import { Button } from "@/components/ui/button";
@@ -92,8 +91,6 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-4 lg:flex">
-          <LanguageSwitcher />
-          <div className="h-6 w-px bg-border" />
           <Button asChild size="sm">
             <Link href="/join">{t("join")}</Link>
           </Button>

@@ -10,7 +10,7 @@ const SLIDE_CATEGORIES = ["NEWS", "EVENT", "SPONSOR", "MEMBER"] as const;
 
 export default async function EditSlidePage({ params }: { params: Promise<{ id: string }> }) {
   const currentUser = await getCurrentUser();
-  if (!hasRole(currentUser, ["SUPER_ADMIN", "BOARD_ADMIN"])) notFound();
+  if (!hasRole(currentUser, ["SUPER_ADMIN", "ADMIN"])) notFound();
 
   const { id } = await params;
   const slide = await prisma.slide.findUnique({ where: { id } });

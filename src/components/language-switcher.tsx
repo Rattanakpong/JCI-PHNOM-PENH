@@ -37,7 +37,7 @@ export function LanguageSwitcher() {
             aria-current={locale === loc}
             className={cn(
               "relative z-10 flex w-1/2 items-center justify-center whitespace-nowrap rounded-full text-xs font-semibold transition-colors",
-              loc === "km" && "font-khmer",
+              (loc as string) === "km" && "font-khmer",
               locale === loc ? "text-white" : "text-brand-navy/60 hover:text-brand-navy"
             )}
           >
