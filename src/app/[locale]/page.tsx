@@ -14,9 +14,10 @@ import { getTranslations } from "next-intl/server";
 import { getHomeAboutImageUrl } from "@/lib/site-settings";
 
 // Impact stats, events, projects, news, and the board roster are all
-// editable via the admin CMS, so this page must re-query Prisma per
-// request rather than being baked in at build time.
-export const dynamic = "force-dynamic";
+// editable via the admin CMS — but every mutation already calls
+// revalidatePath() for this route (see src/lib/actions/content-actions.ts
+// and event-actions.ts), so this page can be cached and only
+// re-rendered on demand instead of re-querying Prisma on every visit.
 
 const STAT_KEYS = ["members", "projects", "events", "beneficiaries"] as const;
 type Locale = "en" | "km";

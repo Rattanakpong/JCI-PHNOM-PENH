@@ -11,7 +11,10 @@ import { parseLocalizedText, parseStringArray } from "@/lib/json-field";
 import { PILLAR_COLORS } from "@/lib/pillar-colors";
 import type { ProjectPillar } from "@/lib/enums";
 
-export const dynamic = "force-dynamic";
+// Every project mutation already calls revalidatePath for this slug (see
+// revalidateProjectPages() in content-actions.ts), so this page can be
+// cached and only re-rendered on demand instead of re-querying on every
+// visit.
 
 export default async function ProjectDetailPage({
   params,

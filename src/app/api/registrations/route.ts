@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -33,6 +34,7 @@ export async function POST(request: Request) {
 
   const ticketTier = await prisma.ticketTier.findFirst({
     where: { id: ticketTierId, eventId },
+    include: { event: true },
   });
 
   if (!ticketTier) {
@@ -73,6 +75,12 @@ export async function POST(request: Request) {
     await prisma.registration.delete({ where: { id: registration.id } });
     return NextResponse.json({ error: "This ticket tier is sold out" }, { status: 409 });
   }
+
+  // The event detail page is cached (see src/app/[locale]/events/[slug]/page.tsx)
+  // and only re-rendered on demand, so a successful registration must
+  // invalidate it too, not just admin edits.
+  revalidatePath(`/en/events/${ticketTier.event.slug}`);
+  revalidatePath(`/km/events/${ticketTier.event.slug}`);
 
   const amountUsd = Number(ticketTier.priceUsd);
 

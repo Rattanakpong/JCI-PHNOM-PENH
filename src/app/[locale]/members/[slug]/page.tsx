@@ -6,7 +6,9 @@ import { Link } from "@/i18n/navigation";
 import { prisma } from "@/lib/prisma";
 import { parseLocalizedText } from "@/lib/json-field";
 
-export const dynamic = "force-dynamic";
+// Every member mutation already calls revalidatePath for this slug (see
+// content-actions.ts), so this page can be cached and only re-rendered on
+// demand instead of re-querying on every visit.
 
 export default async function MemberProfilePage({ params }: { params: Promise<{ locale: string; slug: string }> }) {
   const { locale, slug } = await params;

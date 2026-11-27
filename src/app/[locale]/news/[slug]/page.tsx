@@ -13,7 +13,9 @@ import { parseNewsBody, type ArticleBlock, type NewsTemplate } from "@/lib/news-
 import { PhotoGallery } from "@/components/ui/photo-gallery";
 import { cn } from "@/lib/utils";
 
-export const dynamic = "force-dynamic";
+// Every news mutation already calls revalidatePath for this slug (see
+// content-actions.ts), so this page can be cached and only re-rendered on
+// demand instead of re-querying on every visit.
 
 type PostWithPhotos = NewsPost & { photos: NewsPhoto[]; publishedAt: Date };
 

@@ -2,9 +2,8 @@ const createNextIntlPlugin = require("next-intl/plugin");
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
-const r2Host = process.env.R2_PUBLIC_URL
-  ? new URL(process.env.R2_PUBLIC_URL).origin
-  : "";
+const r2Url = process.env.R2_PUBLIC_URL ? new URL(process.env.R2_PUBLIC_URL) : null;
+const r2Host = r2Url ? r2Url.origin : "";
 
 const contentSecurityPolicy = [
   "default-src 'self'",
@@ -30,6 +29,11 @@ const nextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "res.cloudinary.com" },
       { protocol: "https", hostname: "*.supabase.co" },
+      // Admin-uploaded photos (slides, member/board/partner photos, event
+      // banners) are served from R2_PUBLIC_URL — without this pattern
+      // next/image can't optimize them, so callers fall back to plain
+      // <img> and ship full-resolution originals to every visitor.
+      ...(r2Url ? [{ protocol: r2Url.protocol.replace(":", ""), hostname: r2Url.hostname }] : []),
     ],
   },
   experimental: {

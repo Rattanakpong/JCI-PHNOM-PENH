@@ -14,7 +14,11 @@ import {
   type RegistrationEvent,
 } from "@/components/registration/registration-modal";
 
-export const dynamic = "force-dynamic";
+// Admin edits already call revalidatePath for this slug (see
+// event-actions.ts / content-actions.ts); a new registration also calls
+// revalidatePath here (see src/app/api/registrations/route.ts) so this
+// page can be cached and only re-rendered on demand instead of
+// re-querying on every visit.
 
 type Speaker = { name: string; title: string };
 type AgendaItem = { time: string; title: string };

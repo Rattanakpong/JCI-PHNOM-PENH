@@ -30,9 +30,10 @@ const ROW_TEXT_DARK = new Set<ProjectPillar>([
 // The hover panel stays compact — anything past this is reachable via "Show more".
 const MAX_PROJECTS_PER_VALUE = 3;
 
-// The organization structure image is editable via the admin CMS, so this
-// page must re-query per request rather than being baked in at build time.
-export const dynamic = "force-dynamic";
+// Org structure image, past presidents, and partners are editable via the
+// admin CMS — every mutation already calls revalidatePath("/en/about") /
+// ("/km/about") (see src/lib/actions/content-actions.ts), so this page can
+// be cached and only re-rendered on demand.
 
 export default async function AboutPage({
   params,

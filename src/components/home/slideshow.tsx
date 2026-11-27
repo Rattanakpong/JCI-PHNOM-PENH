@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -79,12 +80,14 @@ export function Slideshow({
 
           const content = (
             <div className="relative h-full w-full overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element -- admin-uploaded local file, not worth next/image config */}
-              <img
+              <Image
                 src={slide.imageUrl}
                 alt={slide.title}
+                fill
+                sizes="100vw"
+                priority={i === 0}
                 className={cn(
-                  "h-full w-full object-cover transition-transform motion-reduce:transition-none",
+                  "object-cover transition-transform motion-reduce:transition-none",
                   // Zoom in slowly while active; snap back only after the 1s fade-out finishes.
                   active && mounted
                     ? "scale-[1.08] [transition-duration:7000ms] ease-out"

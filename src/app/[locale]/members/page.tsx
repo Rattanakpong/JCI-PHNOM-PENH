@@ -3,8 +3,10 @@ import { PageHeader } from "@/components/layout/page-header";
 import { MemberDirectory } from "@/components/members/member-directory";
 import { prisma } from "@/lib/prisma";
 
-// Member directory is editable via the admin CMS — don't bake it in at build time.
-export const dynamic = "force-dynamic";
+// Member directory is editable via the admin CMS — every mutation already
+// calls revalidatePath("/en/members") / ("/km/members") (see
+// content-actions.ts), so this page can be cached and only re-rendered on
+// demand.
 
 export default async function MembersPage({
   params,

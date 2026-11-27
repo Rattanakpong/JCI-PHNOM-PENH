@@ -7,8 +7,9 @@ import { Link } from "@/i18n/navigation";
 import { prisma } from "@/lib/prisma";
 import { parseLocalizedText } from "@/lib/json-field";
 
-// News posts are editable via the admin CMS — don't bake them in at build time.
-export const dynamic = "force-dynamic";
+// News posts are editable via the admin CMS — every mutation already calls
+// revalidatePath("/en/news") / ("/km/news") (see content-actions.ts), so
+// this page can be cached and only re-rendered on demand.
 
 function excerpt(text: string, max = 160) {
   return text.length > max ? `${text.slice(0, max).trimEnd()}…` : text;
