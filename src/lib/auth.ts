@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
@@ -15,7 +16,12 @@ export interface CurrentUser {
 // — used for local dev / until Supabase is configured), then falls back to
 // Supabase Auth when it's set up. Returns null when unauthenticated —
 // callers should redirect to /admin/login or render a 403.
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+//
+// Wrapped in React's cache() so the admin (dashboard) layout and every page
+// under it — each of which calls getCurrentUser() independently — share one
+// DB lookup per request instead of firing it twice (layout + page) on every
+// navigation.
+export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const localUserId = await getSessionUserId();
   if (localUserId) {
     const user = await prisma.user.findUnique({ where: { id: localUserId } });
@@ -32,7 +38,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 
   const user = await prisma.user.findUnique({ where: { id: data.user.id } });
   return user ? toCurrentUser(user) : null;
-}
+});
 
 function toCurrentUser(user: { id: string; name: string; email: string; role: string }): CurrentUser {
   return { id: user.id, name: user.name, email: user.email, role: user.role as Role };
